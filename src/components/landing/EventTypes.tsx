@@ -1,11 +1,11 @@
 
-import { Wedding, Cake, Building, Music } from "lucide-react";
+import { GlassWater, Cake, Building, Users } from "lucide-react";
 
 const eventTypes = [
   {
     title: "Weddings",
     description: "Plan your big day stress-free",
-    icon: Wedding,
+    icon: GlassWater,
   },
   {
     title: "Birthdays",
@@ -20,7 +20,7 @@ const eventTypes = [
   {
     title: "Conferences & Seminars",
     description: "Ensure smooth check-ins",
-    icon: Music,
+    icon: Users,
   },
 ];
 
