@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -26,10 +27,10 @@ export const Navbar = () => {
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <Link to="/login">
+          <Link to="/auth?tab=signin">
             <Button variant="ghost" className="text-[#2C2C2C] hover:text-[#FF6F00]">Log in</Button>
           </Link>
-          <Link to="/signup">
+          <Link to="/auth?tab=signup">
             <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90 text-white">Get Started</Button>
           </Link>
         </div>

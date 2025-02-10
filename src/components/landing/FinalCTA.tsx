@@ -15,12 +15,12 @@ export const FinalCTA = () => {
             Join thousands of event planners who are making their guest management effortless
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link to="/signup">
+            <Link to="/auth?tab=signup">
               <Button size="lg" className="bg-white text-[#FF6F00] hover:bg-white/90">
                 Sign Up Free
               </Button>
             </Link>
-            <Link to="/pricing">
+            <Link to="/auth?tab=signup">
               <Button size="lg" className="bg-[#00796B] text-white hover:bg-[#00796B]/90">
                 Get Pro – Nrs. 1,500
               </Button>
