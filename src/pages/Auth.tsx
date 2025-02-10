@@ -63,7 +63,18 @@ const Auth = () => {
         password: authData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for email not confirmed error
+        if (error.message.includes("Email not confirmed")) {
+          toast({
+            variant: "destructive",
+            title: "Email Not Verified",
+            description: "Please check your email and click the verification link before signing in.",
+          });
+          return;
+        }
+        throw error;
+      }
       
       navigate("/dashboard");
     } catch (error: any) {
