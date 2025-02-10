@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle, Users, CalendarDays, Settings, ListFilter } from "lucide-react";
+import AddGuestForm from "@/components/guests/AddGuestForm";
+import GuestList from "@/components/guests/GuestList";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -108,21 +112,22 @@ const Dashboard = () => {
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Guest List</h2>
-                <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Guest
-                </Button>
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Guest
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <AddGuestForm onSuccess={() => {
+                      setOpen(false);
+                      window.location.reload();
+                    }} />
+                  </DialogContent>
+                </Dialog>
               </div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Start Building Your Guest List</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Add your first guest to get started. You can import from CSV or add guests manually.
-                  </p>
-                </CardContent>
-              </Card>
+              <GuestList />
             </div>
           </TabsContent>
 
