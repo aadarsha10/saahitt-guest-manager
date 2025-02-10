@@ -39,7 +39,15 @@ const GuestList = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setGuests(data || []);
+      
+      // Validate and transform the data to ensure it matches the Guest type
+      const validGuests = (data || []).map((guest): Guest => ({
+        ...guest,
+        priority: guest.priority as Guest['priority'],
+        status: guest.status as Guest['status'],
+      }));
+      
+      setGuests(validGuests);
     } catch (error: any) {
       toast({
         variant: "destructive",
