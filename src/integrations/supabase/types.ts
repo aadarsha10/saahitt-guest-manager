@@ -9,10 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      custom_fields: {
+        Row: {
+          created_at: string
+          field_type: string
+          id: string
+          name: string
+          options: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_type: string
+          id?: string
+          name: string
+          options?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_type?: string
+          id?: string
+          name?: string
+          options?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       guests: {
         Row: {
           category: string | null
           created_at: string
+          custom_values: Json | null
           email: string | null
           first_name: string
           id: string
@@ -27,6 +58,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          custom_values?: Json | null
           email?: string | null
           first_name: string
           id?: string
@@ -41,6 +73,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          custom_values?: Json | null
           email?: string | null
           first_name?: string
           id?: string
