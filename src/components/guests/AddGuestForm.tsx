@@ -78,7 +78,7 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
       const { error } = await supabase
         .from("guests")
-        .insert([{ ...guest, user_id: session.user.id }]);
+        .insert({ ...guest, user_id: session.user.id });
 
       if (error) throw error;
 
@@ -209,13 +209,14 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
                     <Label htmlFor={field.name}>{field.name}</Label>
                     {field.field_type === 'select' ? (
                       <Select
-                        value={guest.custom_values[field.name] as string || ''}
+                        value={guest.custom_values[field.name] as string || 'none'}
                         onValueChange={(value) => handleCustomFieldChange(field.name, value)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
                           {field.options?.map((option) => (
                             <SelectItem key={option} value={option}>
                               {option}
@@ -280,3 +281,4 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
 };
 
 export default AddGuestForm;
+

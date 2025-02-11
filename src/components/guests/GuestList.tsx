@@ -95,15 +95,21 @@ const GuestList = () => {
   };
 
   const handleFilterChange = (field: string, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    if (value === "all") {
+      const newFilters = { ...filters };
+      delete newFilters[field];
+      setFilters(newFilters);
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const filteredGuests = guests.filter(guest => {
     return Object.entries(filters).every(([field, value]) => {
-      if (!value) return true;
+      if (!value || value === "all") return true;
       
       if (field === 'category' || field === 'priority' || field === 'status') {
         return guest[field] === value;
@@ -123,14 +129,14 @@ const GuestList = () => {
         <div className="space-y-2">
           <Label>Category</Label>
           <Select
-            value={filters.category || ''}
+            value={filters.category || "all"}
             onValueChange={(value) => handleFilterChange('category', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="Family">Family</SelectItem>
               <SelectItem value="Friends">Friends</SelectItem>
               <SelectItem value="Work">Work</SelectItem>
@@ -142,14 +148,14 @@ const GuestList = () => {
         <div className="space-y-2">
           <Label>Priority</Label>
           <Select
-            value={filters.priority || ''}
+            value={filters.priority || "all"}
             onValueChange={(value) => handleFilterChange('priority', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Priorities" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Priorities</SelectItem>
+              <SelectItem value="all">All Priorities</SelectItem>
               <SelectItem value="High">High</SelectItem>
               <SelectItem value="Medium">Medium</SelectItem>
               <SelectItem value="Low">Low</SelectItem>
@@ -160,14 +166,14 @@ const GuestList = () => {
         <div className="space-y-2">
           <Label>Status</Label>
           <Select
-            value={filters.status || ''}
+            value={filters.status || "all"}
             onValueChange={(value) => handleFilterChange('status', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="Confirmed">Confirmed</SelectItem>
               <SelectItem value="Maybe">Maybe</SelectItem>
               <SelectItem value="Unavailable">Unavailable</SelectItem>
@@ -181,14 +187,14 @@ const GuestList = () => {
             <Label>{field.name}</Label>
             {field.field_type === 'select' ? (
               <Select
-                value={filters[field.name] || ''}
+                value={filters[field.name] || "all"}
                 onValueChange={(value) => handleFilterChange(field.name, value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={`All ${field.name}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{`All ${field.name}`}</SelectItem>
+                  <SelectItem value="all">{`All ${field.name}`}</SelectItem>
                   {field.options?.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
@@ -242,7 +248,7 @@ const GuestList = () => {
                 </TableCell>
                 {customFields.map(field => (
                   <TableCell key={field.id}>
-                    {guest.custom_values[field.name] || '-'}
+                    {String(guest.custom_values[field.name] || '-')}
                   </TableCell>
                 ))}
               </TableRow>
@@ -265,3 +271,4 @@ const GuestList = () => {
 };
 
 export default GuestList;
+
