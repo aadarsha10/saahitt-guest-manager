@@ -66,6 +66,72 @@ export type Database = {
         }
         Relationships: []
       }
+      event_guests: {
+        Row: {
+          created_at: string
+          event_id: string
+          guest_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          guest_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          guest_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_guests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_guests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       guests: {
         Row: {
           category: string | null

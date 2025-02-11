@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,8 @@ import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
 import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import CustomFieldsManager from "@/components/settings/CustomFieldsManager";
+import AddEventForm from "@/components/events/AddEventForm";
+import EventList from "@/components/events/EventList";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [guestFormOpen, setGuestFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
+  const [eventFormOpen, setEventFormOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -159,16 +161,26 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Events</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Create and manage your events. Track RSVPs and manage guest lists for each event.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid gap-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Events</h2>
+                <Dialog open={eventFormOpen} onOpenChange={setEventFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Event
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <AddEventForm onSuccess={() => {
+                      setEventFormOpen(false);
+                      window.location.reload();
+                    }} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <EventList />
+            </div>
           </TabsContent>
 
           <TabsContent value="settings">
