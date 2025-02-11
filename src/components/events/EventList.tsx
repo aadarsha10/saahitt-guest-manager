@@ -59,7 +59,13 @@ const EventList = () => {
         .order("first_name", { ascending: true });
 
       if (error) throw error;
-      setGuests(data || []);
+      // Ensure the data matches the Guest type
+      const typedGuests: Guest[] = data?.map(guest => ({
+        ...guest,
+        priority: guest.priority as 'High' | 'Medium' | 'Low',
+        status: guest.status as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending'
+      })) || [];
+      setGuests(typedGuests);
     } catch (error: any) {
       toast({
         variant: "destructive",
