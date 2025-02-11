@@ -74,9 +74,9 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
     setGuest(prev => ({
       ...prev,
       custom_values: {
-        ...prev.custom_values as Record<string, unknown>,
+        ...(prev.custom_values as Record<string, Json>),
         [fieldName]: value
-      }
+      } as Json
     }));
   };
 
