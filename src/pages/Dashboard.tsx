@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle, Users, CalendarDays, Settings, ListFilter } from "lucide-react";
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
+import CategoryList from "@/components/categories/CategoryList";
 import CustomFieldsManager from "@/components/settings/CustomFieldsManager";
 
 const Dashboard = () => {
@@ -133,16 +133,16 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="categories">
-            <Card>
-              <CardHeader>
-                <CardTitle>Guest Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Organize your guests into categories like Family, Friends, Colleagues, etc.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid gap-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Categories</h2>
+                <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Category
+                </Button>
+              </div>
+              <CategoryList />
+            </div>
           </TabsContent>
 
           <TabsContent value="events">
