@@ -32,7 +32,15 @@ const CustomFieldsManager = () => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setCustomFields(data || []);
+      
+      // Cast the data to ensure field_type is of type CustomFieldType
+      const typedData = data?.map(field => ({
+        ...field,
+        field_type: field.field_type as CustomFieldType,
+        options: field.options as string[] || []
+      })) || [];
+
+      setCustomFields(typedData);
     } catch (error: any) {
       toast({
         variant: "destructive",
