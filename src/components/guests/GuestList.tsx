@@ -115,7 +115,8 @@ const GuestList = () => {
         return guest[field] === value;
       }
       
-      return guest.custom_values[field] === value;
+      const customValue = guest.custom_values?.[field];
+      return customValue === value;
     });
   });
 

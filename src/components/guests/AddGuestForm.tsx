@@ -8,10 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomField } from "@/types/custom-field";
-import { NewGuest } from "@/types/guest";
+import { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 
-const initialGuest: NewGuest = {
+type GuestFormData = {
+  first_name: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  category: string;
+  priority: 'High' | 'Medium' | 'Low';
+  status: 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending';
+  notes?: string;
+  custom_values: Json;
+};
+
+const initialGuest: GuestFormData = {
   first_name: "",
   last_name: "",
   email: "",
@@ -24,7 +36,7 @@ const initialGuest: NewGuest = {
 };
 
 const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
-  const [guest, setGuest] = useState<NewGuest>(initialGuest);
+  const [guest, setGuest] = useState<GuestFormData>(initialGuest);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +90,11 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
       const { error } = await supabase
         .from("guests")
-        .insert({ ...guest, user_id: session.user.id });
+        .insert({
+          ...guest,
+          user_id: session.user.id,
+          custom_values: guest.custom_values || {}
+        });
 
       if (error) throw error;
 
@@ -167,7 +183,7 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={guest.priority}
-                onValueChange={(value) => setGuest({ ...guest, priority: value as NewGuest['priority'] })}
+                onValueChange={(value) => setGuest({ ...guest, priority: value as GuestFormData['priority'] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -184,7 +200,7 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={guest.status}
-                onValueChange={(value) => setGuest({ ...guest, status: value as NewGuest['status'] })}
+                onValueChange={(value) => setGuest({ ...guest, status: value as GuestFormData['status'] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -209,7 +225,7 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
                     <Label htmlFor={field.name}>{field.name}</Label>
                     {field.field_type === 'select' ? (
                       <Select
-                        value={guest.custom_values[field.name] as string || 'none'}
+                        value={(guest.custom_values[field.name] as string) || 'none'}
                         onValueChange={(value) => handleCustomFieldChange(field.name, value)}
                       >
                         <SelectTrigger>
@@ -228,21 +244,21 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
                       <Input
                         type="date"
                         id={field.name}
-                        value={guest.custom_values[field.name] as string || ''}
+                        value={(guest.custom_values[field.name] as string) || ''}
                         onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
                       />
                     ) : field.field_type === 'number' ? (
                       <Input
                         type="number"
                         id={field.name}
-                        value={guest.custom_values[field.name] as string || ''}
+                        value={(guest.custom_values[field.name] as string) || ''}
                         onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
                       />
                     ) : (
                       <Input
                         type="text"
                         id={field.name}
-                        value={guest.custom_values[field.name] as string || ''}
+                        value={(guest.custom_values[field.name] as string) || ''}
                         onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
                       />
                     )}

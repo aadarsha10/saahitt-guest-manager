@@ -1,4 +1,6 @@
 
+import { Json } from "@/integrations/supabase/types";
+
 export type Guest = {
   id: string;
   user_id: string;
@@ -10,9 +12,10 @@ export type Guest = {
   priority: 'High' | 'Medium' | 'Low';
   status: 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending';
   notes?: string;
-  custom_values: Record<string, string | number | Date>;
+  custom_values: Json;
   created_at: string;
   updated_at: string;
 };
 
-export type NewGuest = Omit<Guest, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+export type NewGuest = Omit<Guest, 'id' | 'created_at' | 'updated_at'>;
+
