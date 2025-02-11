@@ -1,9 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { Event, EventGuest } from "@/types/event";
-import { Guest } from "@/types/guest";
-import { supabase } from "@/integrations/supabase/client";
+import { Event } from "@/types/event";
 import {
   Table,
   TableBody,
@@ -15,176 +12,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
+import EventGuestManager from "./EventGuestManager";
+import { useEvents } from "@/hooks/useEvents";
+import { useEventGuests } from "@/hooks/useEventGuests";
 
 const EventList = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [eventGuests, setEventGuests] = useState<Record<string, string[]>>({});
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const { toast } = useToast();
+  
+  const { events, fetchEvents, handleEventUpdate, handleEventDelete } = useEvents();
+  const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle } = useEventGuests();
 
   useEffect(() => {
     fetchEvents();
     fetchGuests();
     fetchEventGuests();
   }, []);
-
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch events",
-      });
-    }
-  };
-
-  const fetchGuests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("guests")
-        .select("*")
-        .order("first_name", { ascending: true });
-
-      if (error) throw error;
-      // Ensure the data matches the Guest type
-      const typedGuests: Guest[] = data?.map(guest => ({
-        ...guest,
-        priority: guest.priority as 'High' | 'Medium' | 'Low',
-        status: guest.status as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending'
-      })) || [];
-      setGuests(typedGuests);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch guests",
-      });
-    }
-  };
-
-  const fetchEventGuests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("event_guests")
-        .select("*");
-
-      if (error) throw error;
-
-      const guestsByEvent: Record<string, string[]> = {};
-      (data || []).forEach((eg: EventGuest) => {
-        if (!guestsByEvent[eg.event_id]) {
-          guestsByEvent[eg.event_id] = [];
-        }
-        guestsByEvent[eg.event_id].push(eg.guest_id);
-      });
-      setEventGuests(guestsByEvent);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch event guests",
-      });
-    }
-  };
-
-  const handleGuestToggle = async (eventId: string, guestId: string) => {
-    const isCurrentlySelected = eventGuests[eventId]?.includes(guestId);
-    
-    try {
-      if (isCurrentlySelected) {
-        const { error } = await supabase
-          .from("event_guests")
-          .delete()
-          .eq("event_id", eventId)
-          .eq("guest_id", guestId);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("event_guests")
-          .insert({ event_id: eventId, guest_id: guestId });
-
-        if (error) throw error;
-      }
-
-      await fetchEventGuests();
-      toast({
-        title: "Success",
-        description: `Guest ${isCurrentlySelected ? "removed from" : "added to"} event`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update event guests",
-      });
-    }
-  };
-
-  const handleEventUpdate = async (event: Event) => {
-    try {
-      const { error } = await supabase
-        .from("events")
-        .update({
-          name: event.name,
-          description: event.description,
-          date: event.date,
-        })
-        .eq("id", event.id);
-
-      if (error) throw error;
-
-      setEditingEvent(null);
-      fetchEvents();
-      toast({
-        title: "Success",
-        description: "Event updated successfully",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update event",
-      });
-    }
-  };
-
-  const handleEventDelete = async (eventId: string) => {
-    try {
-      const { error } = await supabase
-        .from("events")
-        .delete()
-        .eq("id", eventId);
-
-      if (error) throw error;
-
-      fetchEvents();
-      setSelectedEvent(null);
-      toast({
-        title: "Success",
-        description: "Event deleted successfully",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete event",
-      });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -239,7 +83,11 @@ const EventList = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEventUpdate(editingEvent)}
+                          onClick={() => {
+                            handleEventUpdate(editingEvent).then((success) => {
+                              if (success) setEditingEvent(null);
+                            });
+                          }}
                         >
                           Save
                         </Button>
@@ -270,7 +118,11 @@ const EventList = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleEventDelete(event.id)}
+                          onClick={() => {
+                            handleEventDelete(event.id).then((success) => {
+                              if (success) setSelectedEvent(null);
+                            });
+                          }}
                         >
                           Delete
                         </Button>
@@ -292,23 +144,12 @@ const EventList = () => {
       </div>
 
       {selectedEvent && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Manage Guests for {selectedEvent.name}</h3>
-          <div className="space-y-4">
-            {guests.map((guest) => (
-              <div key={guest.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`guest-${guest.id}`}
-                  checked={eventGuests[selectedEvent.id]?.includes(guest.id)}
-                  onCheckedChange={() => handleGuestToggle(selectedEvent.id, guest.id)}
-                />
-                <label htmlFor={`guest-${guest.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {guest.first_name} {guest.last_name}
-                </label>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <EventGuestManager
+          event={selectedEvent}
+          guests={guests}
+          eventGuests={eventGuests}
+          onGuestToggle={handleGuestToggle}
+        />
       )}
     </div>
   );
