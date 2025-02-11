@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,13 +11,15 @@ import { PlusCircle, Users, CalendarDays, Settings, ListFilter } from "lucide-re
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
+import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import CustomFieldsManager from "@/components/settings/CustomFieldsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
-  const [open, setOpen] = useState(false);
+  const [guestFormOpen, setGuestFormOpen] = useState(false);
+  const [categoryFormOpen, setCategoryFormOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -113,7 +116,7 @@ const Dashboard = () => {
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Guest List</h2>
-                <Dialog open={open} onOpenChange={setOpen}>
+                <Dialog open={guestFormOpen} onOpenChange={setGuestFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -122,7 +125,7 @@ const Dashboard = () => {
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[600px]">
                     <AddGuestForm onSuccess={() => {
-                      setOpen(false);
+                      setGuestFormOpen(false);
                       window.location.reload();
                     }} />
                   </DialogContent>
@@ -136,10 +139,20 @@ const Dashboard = () => {
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Categories</h2>
-                <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Category
-                </Button>
+                <Dialog open={categoryFormOpen} onOpenChange={setCategoryFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Category
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <AddCategoryForm onSuccess={() => {
+                      setCategoryFormOpen(false);
+                      window.location.reload();
+                    }} />
+                  </DialogContent>
+                </Dialog>
               </div>
               <CategoryList />
             </div>
