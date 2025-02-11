@@ -74,7 +74,7 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
     setGuest(prev => ({
       ...prev,
       custom_values: {
-        ...prev.custom_values,
+        ...prev.custom_values as Record<string, unknown>,
         [fieldName]: value
       }
     }));
@@ -88,13 +88,22 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("No user found");
 
+      const guestData = {
+        first_name: guest.first_name,
+        last_name: guest.last_name,
+        email: guest.email,
+        phone: guest.phone,
+        category: guest.category,
+        priority: guest.priority,
+        status: guest.status,
+        notes: guest.notes,
+        user_id: session.user.id,
+        custom_values: guest.custom_values || {}
+      };
+
       const { error } = await supabase
         .from("guests")
-        .insert({
-          ...guest,
-          user_id: session.user.id,
-          custom_values: guest.custom_values || {}
-        });
+        .insert(guestData);
 
       if (error) throw error;
 
@@ -225,14 +234,13 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
                     <Label htmlFor={field.name}>{field.name}</Label>
                     {field.field_type === 'select' ? (
                       <Select
-                        value={(guest.custom_values[field.name] as string) || 'none'}
+                        value={(guest.custom_values[field.name] as string) || ''}
                         onValueChange={(value) => handleCustomFieldChange(field.name, value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
                           {field.options?.map((option) => (
                             <SelectItem key={option} value={option}>
                               {option}
@@ -297,4 +305,3 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
 };
 
 export default AddGuestForm;
-
