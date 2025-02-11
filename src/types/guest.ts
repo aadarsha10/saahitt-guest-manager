@@ -10,6 +10,7 @@ export type Guest = {
   priority: 'High' | 'Medium' | 'Low';
   status: 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending';
   notes?: string;
+  custom_values: Record<string, string | number | Date>;
   created_at: string;
   updated_at: string;
 };

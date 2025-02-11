@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { CustomField } from "@/types/custom-field";
 import { NewGuest } from "@/types/guest";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,12 +20,53 @@ const initialGuest: NewGuest = {
   priority: "Medium",
   status: "Pending",
   notes: "",
+  custom_values: {},
 };
 
 const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const [guest, setGuest] = useState<NewGuest>(initialGuest);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchCustomFields();
+  }, []);
+
+  const fetchCustomFields = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("custom_fields")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const typedData = data?.map(field => ({
+        ...field,
+        field_type: field.field_type as CustomField['field_type'],
+        options: field.options as string[] || []
+      })) || [];
+
+      setCustomFields(typedData);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch custom fields",
+      });
+    }
+  };
+
+  const handleCustomFieldChange = (fieldName: string, value: string) => {
+    setGuest(prev => ({
+      ...prev,
+      custom_values: {
+        ...prev.custom_values,
+        [fieldName]: value
+      }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,6 +198,58 @@ const AddGuestForm = ({ onSuccess }: { onSuccess: () => void }) => {
               </Select>
             </div>
           </div>
+
+          {/* Custom Fields Section */}
+          {customFields.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-medium">Custom Fields</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {customFields.map((field) => (
+                  <div key={field.id} className="space-y-2">
+                    <Label htmlFor={field.name}>{field.name}</Label>
+                    {field.field_type === 'select' ? (
+                      <Select
+                        value={guest.custom_values[field.name] as string || ''}
+                        onValueChange={(value) => handleCustomFieldChange(field.name, value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {field.options?.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : field.field_type === 'date' ? (
+                      <Input
+                        type="date"
+                        id={field.name}
+                        value={guest.custom_values[field.name] as string || ''}
+                        onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
+                      />
+                    ) : field.field_type === 'number' ? (
+                      <Input
+                        type="number"
+                        id={field.name}
+                        value={guest.custom_values[field.name] as string || ''}
+                        onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
+                      />
+                    ) : (
+                      <Input
+                        type="text"
+                        id={field.name}
+                        value={guest.custom_values[field.name] as string || ''}
+                        onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
