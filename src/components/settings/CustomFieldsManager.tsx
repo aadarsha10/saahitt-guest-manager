@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { CustomField, CustomFieldType, NewCustomField } from "@/types/custom-field";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Settings } from "lucide-react";
 
 const CustomFieldsManager = () => {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -142,7 +141,13 @@ const CustomFieldsManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Custom Fields</CardTitle>
+        <div className="flex items-center space-x-2">
+          <Settings className="h-5 w-5 text-gray-500" />
+          <CardTitle>Custom Fields</CardTitle>
+        </div>
+        <CardDescription>
+          Add and manage custom fields for collecting additional guest information.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4">

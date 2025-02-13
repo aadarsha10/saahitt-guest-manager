@@ -14,6 +14,8 @@ import AddCategoryForm from "@/components/categories/AddCategoryForm";
 import CustomFieldsManager from "@/components/settings/CustomFieldsManager";
 import AddEventForm from "@/components/events/AddEventForm";
 import EventList from "@/components/events/EventList";
+import AccountSettings from "@/components/settings/AccountSettings";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -184,20 +186,15 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Settings</h2>
-              <CustomFieldsManager />
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Manage your account settings, notifications, and preferences.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <ScrollArea className="h-[calc(100vh-12rem)]">
+              <div className="space-y-6 p-1">
+                <h2 className="text-2xl font-bold">Settings</h2>
+                <div className="grid gap-6">
+                  <AccountSettings />
+                  <CustomFieldsManager />
+                </div>
+              </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>
