@@ -45,10 +45,13 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
         description: "Event added successfully",
       });
       
-      onSuccess();
+      // Reset form
       setName("");
       setDescription("");
       setDate("");
+      
+      // Close dialog and refresh events list
+      onSuccess();
     } catch (error: any) {
       toast({
         variant: "destructive",

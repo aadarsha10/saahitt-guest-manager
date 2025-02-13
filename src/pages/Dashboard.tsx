@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [guestFormOpen, setGuestFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("guests");
 
   useEffect(() => {
     checkUser();
@@ -96,7 +97,7 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <Tabs defaultValue="guests" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white p-1 space-x-2">
             <TabsTrigger value="guests" className="space-x-2">
               <Users className="h-4 w-4" />
@@ -176,7 +177,7 @@ const Dashboard = () => {
                   <DialogContent className="sm:max-w-[600px]">
                     <AddEventForm onSuccess={() => {
                       setEventFormOpen(false);
-                      window.location.reload();
+                      setActiveTab("events");
                     }} />
                   </DialogContent>
                 </Dialog>
