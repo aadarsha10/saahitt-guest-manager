@@ -22,7 +22,7 @@ const EventList = () => {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   
   const { events, fetchEvents, handleEventUpdate, handleEventDelete } = useEvents();
-  const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle } = useEventGuests();
+  const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle, handleBulkGuestToggle, updateInviteStatus } = useEventGuests();
 
   useEffect(() => {
     fetchEvents();
@@ -149,6 +149,8 @@ const EventList = () => {
           guests={guests}
           eventGuests={eventGuests}
           onGuestToggle={handleGuestToggle}
+          onBulkGuestToggle={handleBulkGuestToggle}
+          onUpdateInviteStatus={updateInviteStatus}
         />
       )}
     </div>
