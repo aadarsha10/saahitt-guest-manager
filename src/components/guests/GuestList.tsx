@@ -37,8 +37,8 @@ const GuestList = () => {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCustomFields();
