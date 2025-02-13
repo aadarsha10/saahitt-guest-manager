@@ -13,13 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 import EventGuestManager from "./EventGuestManager";
 import { useEvents } from "@/hooks/useEvents";
 import { useEventGuests } from "@/hooks/useEventGuests";
+import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 
 const EventList = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState<Event | null>(null);
   
   const { events, fetchEvents, handleEventUpdate, handleEventDelete } = useEvents();
   const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle, handleBulkGuestToggle, updateInviteStatus } = useEventGuests();
@@ -29,6 +33,11 @@ const EventList = () => {
     fetchGuests();
     fetchEventGuests();
   }, []);
+
+  const handleDownloadClick = (event: Event) => {
+    setPreviewEvent(event);
+    setPdfPreviewOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -116,6 +125,14 @@ const EventList = () => {
                           Manage Guests
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadClick(event)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download List
+                        </Button>
+                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => {
@@ -153,6 +170,16 @@ const EventList = () => {
           onUpdateInviteStatus={updateInviteStatus}
         />
       )}
+
+      <PDFPreviewDialog
+        open={pdfPreviewOpen}
+        onOpenChange={setPdfPreviewOpen}
+        guests={previewEvent ? guests.filter(g => 
+          eventGuests[previewEvent.id]?.some(eg => eg.guest_id === g.id)
+        ) : []}
+        event={previewEvent || undefined}
+        eventGuests={previewEvent ? eventGuests[previewEvent.id] : undefined}
+      />
     </div>
   );
 };

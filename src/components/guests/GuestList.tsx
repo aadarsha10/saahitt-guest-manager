@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Guest } from "@/types/guest";
@@ -15,6 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Download } from "lucide-react";
+import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 
 const priorityColors = {
   High: "bg-red-100 text-red-800",
@@ -35,6 +36,7 @@ const GuestList = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchCustomFields();
@@ -126,86 +128,96 @@ const GuestList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <div className="space-y-2">
-          <Label>Category</Label>
-          <Select
-            value={filters.category || "all"}
-            onValueChange={(value) => handleFilterChange('category', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Family">Family</SelectItem>
-              <SelectItem value="Friends">Friends</SelectItem>
-              <SelectItem value="Work">Work</SelectItem>
-              <SelectItem value="Others">Others</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Priority</Label>
-          <Select
-            value={filters.priority || "all"}
-            onValueChange={(value) => handleFilterChange('priority', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Priorities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select
-            value={filters.status || "all"}
-            onValueChange={(value) => handleFilterChange('status', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Confirmed">Confirmed</SelectItem>
-              <SelectItem value="Maybe">Maybe</SelectItem>
-              <SelectItem value="Unavailable">Unavailable</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {customFields.map(field => (
-          <div key={field.id} className="space-y-2">
-            <Label>{field.name}</Label>
-            {field.field_type === 'select' ? (
-              <Select
-                value={filters[field.name] || "all"}
-                onValueChange={(value) => handleFilterChange(field.name, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`All ${field.name}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{`All ${field.name}`}</SelectItem>
-                  {field.options?.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
+      <div className="flex justify-between items-center">
+        <div className="grid grid-cols-4 gap-4 flex-1">
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={filters.category || "all"}
+              onValueChange={(value) => handleFilterChange('category', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Friends">Friends</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
+                <SelectItem value="Others">Others</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        ))}
+
+          <div className="space-y-2">
+            <Label>Priority</Label>
+            <Select
+              value={filters.priority || "all"}
+              onValueChange={(value) => handleFilterChange('priority', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Priorities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
+              value={filters.status || "all"}
+              onValueChange={(value) => handleFilterChange('status', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Maybe">Maybe</SelectItem>
+                <SelectItem value="Unavailable">Unavailable</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {customFields.map(field => (
+            <div key={field.id} className="space-y-2">
+              <Label>{field.name}</Label>
+              {field.field_type === 'select' ? (
+                <Select
+                  value={filters[field.name] || "all"}
+                  onValueChange={(value) => handleFilterChange(field.name, value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={`All ${field.name}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{`All ${field.name}`}</SelectItem>
+                    {field.options?.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setPdfPreviewOpen(true)}
+          className="ml-4"
+        >
+          <Download className="h-4 w-4 mr-1" />
+          Download List
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -267,9 +279,14 @@ const GuestList = () => {
           </TableBody>
         </Table>
       </div>
+
+      <PDFPreviewDialog
+        open={pdfPreviewOpen}
+        onOpenChange={setPdfPreviewOpen}
+        guests={filteredGuests}
+      />
     </div>
   );
 };
 
 export default GuestList;
-
