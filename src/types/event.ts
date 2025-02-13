@@ -18,4 +18,10 @@ export type EventGuest = {
   event_id: string;
   guest_id: string;
   created_at: string;
+  invite_sent: boolean;
+  invite_sent_at?: string;
+  invite_method?: string;
+  invite_notes?: string;
 };
+
+export type InviteMethod = 'Email' | 'WhatsApp' | 'Phone' | 'In Person' | 'Other';

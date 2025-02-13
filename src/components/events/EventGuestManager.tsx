@@ -1,19 +1,33 @@
 
 import { useState } from "react";
 import { Guest } from "@/types/guest";
+import { EventGuest, InviteMethod } from "@/types/event";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Mail, MessageSquare, Phone, UserCircle, MoreHorizontal } from "lucide-react";
 
 interface EventGuestManagerProps {
   event: { id: string; name: string };
   guests: Guest[];
-  eventGuests: Record<string, string[]>;
+  eventGuests: Record<string, EventGuest[]>;
   onGuestToggle: (eventId: string, guestId: string) => void;
+  onBulkGuestToggle: (eventId: string, guestIds: string[], add: boolean) => void;
+  onUpdateInviteStatus: (
+    eventId: string,
+    guestId: string,
+    details: {
+      invite_sent: boolean;
+      invite_method?: string;
+      invite_notes?: string;
+    }
+  ) => void;
 }
 
 const EventGuestManager = ({
@@ -21,10 +35,17 @@ const EventGuestManager = ({
   guests,
   eventGuests,
   onGuestToggle,
+  onBulkGuestToggle,
+  onUpdateInviteStatus,
 }: EventGuestManagerProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedInviteMethod, setSelectedInviteMethod] = useState<InviteMethod>("Email");
+  const [inviteNotes, setInviteNotes] = useState("");
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+
+  const currentEventGuests = eventGuests[event.id] || [];
 
   const filteredGuests = guests.filter((guest) => {
     const matchesSearch = 
@@ -54,6 +75,36 @@ const EventGuestManager = ({
       case "Work": return "bg-indigo-100 text-indigo-800";
       default: return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleSelectAll = () => {
+    const filteredGuestIds = filteredGuests.map(guest => guest.id);
+    onBulkGuestToggle(event.id, filteredGuestIds, true);
+  };
+
+  const handleDeselectAll = () => {
+    const filteredGuestIds = filteredGuests.map(guest => guest.id);
+    onBulkGuestToggle(event.id, filteredGuestIds, false);
+  };
+
+  const getInviteMethodIcon = (method: InviteMethod) => {
+    switch (method) {
+      case "Email": return <Mail className="h-4 w-4" />;
+      case "WhatsApp": return <MessageSquare className="h-4 w-4" />;
+      case "Phone": return <Phone className="h-4 w-4" />;
+      case "In Person": return <UserCircle className="h-4 w-4" />;
+      default: return <MoreHorizontal className="h-4 w-4" />;
+    }
+  };
+
+  const handleInviteStatusUpdate = (guestId: string) => {
+    onUpdateInviteStatus(event.id, guestId, {
+      invite_sent: true,
+      invite_method: selectedInviteMethod,
+      invite_notes: inviteNotes,
+    });
+    setSelectedGuestId(null);
+    setInviteNotes("");
   };
 
   return (
@@ -118,38 +169,112 @@ const EventGuestManager = ({
             </div>
           </div>
 
+          {/* Bulk Actions */}
+          <div className="flex space-x-4">
+            <Button variant="outline" onClick={handleSelectAll}>
+              Select All Filtered
+            </Button>
+            <Button variant="outline" onClick={handleDeselectAll}>
+              Deselect All Filtered
+            </Button>
+          </div>
+
           {/* Guest List */}
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {filteredGuests.map((guest) => (
-              <div key={guest.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`guest-${guest.id}`}
-                    checked={eventGuests[event.id]?.includes(guest.id)}
-                    onCheckedChange={() => onGuestToggle(event.id, guest.id)}
-                  />
-                  <div>
-                    <label
-                      htmlFor={`guest-${guest.id}`}
-                      className="text-sm font-medium leading-none"
-                    >
-                      {guest.first_name} {guest.last_name}
-                    </label>
-                    {guest.email && (
-                      <p className="text-sm text-gray-500">{guest.email}</p>
+            {filteredGuests.map((guest) => {
+              const eventGuest = currentEventGuests.find(eg => eg.guest_id === guest.id);
+              return (
+                <div key={guest.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`guest-${guest.id}`}
+                      checked={eventGuest !== undefined}
+                      onCheckedChange={() => onGuestToggle(event.id, guest.id)}
+                    />
+                    <div>
+                      <label
+                        htmlFor={`guest-${guest.id}`}
+                        className="text-sm font-medium leading-none"
+                      >
+                        {guest.first_name} {guest.last_name}
+                      </label>
+                      {guest.email && (
+                        <p className="text-sm text-gray-500">{guest.email}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getCategoryColor(guest.category)}>
+                      {guest.category}
+                    </Badge>
+                    <Badge className={getStatusColor(guest.status)}>
+                      {guest.status}
+                    </Badge>
+                    {eventGuest && (
+                      <>
+                        {eventGuest.invite_sent ? (
+                          <Badge variant="outline" className="bg-green-50">
+                            {getInviteMethodIcon(eventGuest.invite_method as InviteMethod)}
+                            <span className="ml-1">Invite Sent</span>
+                          </Badge>
+                        ) : (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedGuestId(guest.id)}
+                              >
+                                Mark Invite Sent
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Update Invite Status</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label>Invite Method</Label>
+                                  <Select
+                                    value={selectedInviteMethod}
+                                    onValueChange={(value) => setSelectedInviteMethod(value as InviteMethod)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Email">Email</SelectItem>
+                                      <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                                      <SelectItem value="Phone">Phone</SelectItem>
+                                      <SelectItem value="In Person">In Person</SelectItem>
+                                      <SelectItem value="Other">Other</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Notes</Label>
+                                  <Textarea
+                                    value={inviteNotes}
+                                    onChange={(e) => setInviteNotes(e.target.value)}
+                                    placeholder="Add any notes about the invitation..."
+                                  />
+                                </div>
+                                <Button
+                                  onClick={() => handleInviteStatusUpdate(guest.id)}
+                                  className="w-full"
+                                >
+                                  Update Status
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className={getCategoryColor(guest.category)}>
-                    {guest.category}
-                  </Badge>
-                  <Badge className={getStatusColor(guest.status)}>
-                    {guest.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {filteredGuests.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No guests found matching your filters.
@@ -159,9 +284,14 @@ const EventGuestManager = ({
         </div>
 
         <div className="border-t pt-4">
-          <p className="text-sm text-gray-500">
-            Total Selected: {eventGuests[event.id]?.length || 0} guests
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              Total Selected: {currentEventGuests.length} guests
+            </p>
+            <p className="text-sm text-gray-500">
+              Invites Sent: {currentEventGuests.filter(eg => eg.invite_sent).length} guests
+            </p>
+          </div>
         </div>
       </div>
     </Card>

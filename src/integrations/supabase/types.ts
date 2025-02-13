@@ -72,18 +72,30 @@ export type Database = {
           event_id: string
           guest_id: string
           id: string
+          invite_method: string | null
+          invite_notes: string | null
+          invite_sent: boolean | null
+          invite_sent_at: string | null
         }
         Insert: {
           created_at?: string
           event_id: string
           guest_id: string
           id?: string
+          invite_method?: string | null
+          invite_notes?: string | null
+          invite_sent?: boolean | null
+          invite_sent_at?: string | null
         }
         Update: {
           created_at?: string
           event_id?: string
           guest_id?: string
           id?: string
+          invite_method?: string | null
+          invite_notes?: string | null
+          invite_sent?: boolean | null
+          invite_sent_at?: string | null
         }
         Relationships: [
           {
