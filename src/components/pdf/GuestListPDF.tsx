@@ -13,91 +13,97 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    borderBottom: '1px solid #eee',
-    paddingBottom: 10,
+    marginBottom: 30,
+    borderBottom: '2px solid #FF6F00',
+    paddingBottom: 15,
   },
   headerLogo: {
-    width: 120,
-    height: 40,
+    width: 150,
+    height: 50,
     marginRight: 20,
   },
   headerText: {
     flex: 1,
-    fontSize: 12,
-    color: '#666',
+    fontSize: 14,
+    color: '#FF6F00',
+    fontFamily: 'Helvetica-Bold',
   },
   title: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontSize: 24,
+    marginBottom: 25,
     textAlign: 'center',
     fontFamily: 'Helvetica-Bold',
+    color: '#333',
   },
   tableHeader: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    paddingBottom: 5,
-    marginBottom: 10,
-    fontWeight: 'bold',
+    borderBottomWidth: 2,
+    borderBottomColor: '#FF6F00',
+    paddingBottom: 8,
+    marginBottom: 12,
+    backgroundColor: '#FFF5E6',
+    padding: 8,
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#999',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   col1: { width: '25%' },
-  col2: { width: '20%' },
-  col3: { width: '20%' },
-  col4: { width: '35%' },
-  checkbox: {
-    border: '1px solid black',
-    width: 12,
-    height: 12,
-    marginRight: 5,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
+  col2: { width: '15%' },
+  col3: { width: '15%' },
+  col4: { width: '15%' },
+  col5: { width: '30%' },
   eventInfo: {
-    marginBottom: 20,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
+    marginBottom: 25,
+    padding: 12,
+    backgroundColor: '#FFF5E6',
+    borderRadius: 4,
+    borderLeft: '3px solid #FF6F00',
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 40,
     left: 30,
     right: 30,
-    borderTop: '1px solid #eee',
-    paddingTop: 10,
+    borderTop: '2px solid #FF6F00',
+    paddingTop: 15,
   },
   footerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 8,
-    color: '#666',
+    fontSize: 9,
   },
   footerLeft: {
     flex: 1,
+    color: '#FF6F00',
   },
   footerCenter: {
     flex: 1,
     textAlign: 'center',
+    color: '#FF6F00',
   },
   footerRight: {
     flex: 1,
     textAlign: 'right',
+    color: '#FF6F00',
   },
   tagline: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#FF6F00',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
     fontStyle: 'italic',
+  },
+  inviteSentBadge: {
+    color: '#FF6F00',
+    fontFamily: 'Helvetica-Bold',
+  },
+  inviteDate: {
+    fontSize: 8,
+    color: '#666',
+    marginTop: 2,
   },
 });
 
@@ -113,7 +119,7 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Image
-            src="https://saahitt.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fmain-logo.0a76fcc4.png&w=640&q=75"
+            src="/lovable-uploads/a36de6e2-9eba-4c99-95c9-361c97bd7293.png"
             style={styles.headerLogo}
           />
           <Text style={styles.headerText}>
@@ -140,8 +146,9 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
         <View style={styles.tableHeader}>
           <Text style={styles.col1}>Name</Text>
           <Text style={styles.col2}>Category</Text>
-          <Text style={styles.col3}>Status</Text>
-          <Text style={styles.col4}>Tracking</Text>
+          <Text style={styles.col3}>Priority</Text>
+          <Text style={styles.col4}>Status</Text>
+          <Text style={styles.col5}>Invite Status</Text>
         </View>
 
         {guests.map((guest) => {
@@ -152,24 +159,22 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
                 {guest.first_name} {guest.last_name}
               </Text>
               <Text style={styles.col2}>{guest.category}</Text>
-              <Text style={styles.col3}>{guest.status}</Text>
-              <View style={styles.col4}>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text>Invite Sent {eventGuest?.invite_sent ? '✓' : ''}</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text>Arrived</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text>+1</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text>Family Group</Text>
-                </View>
+              <Text style={styles.col3}>{guest.priority}</Text>
+              <Text style={styles.col4}>{guest.status}</Text>
+              <View style={styles.col5}>
+                <Text style={styles.inviteSentBadge}>
+                  {eventGuest?.invite_sent ? '✓ Invite Sent' : '⧖ Pending'}
+                </Text>
+                {eventGuest?.invite_sent_at && (
+                  <Text style={styles.inviteDate}>
+                    Sent on: {new Date(eventGuest.invite_sent_at).toLocaleDateString()}
+                  </Text>
+                )}
+                {eventGuest?.invite_method && (
+                  <Text style={styles.inviteDate}>
+                    Via: {eventGuest.invite_method}
+                  </Text>
+                )}
               </View>
             </View>
           );
