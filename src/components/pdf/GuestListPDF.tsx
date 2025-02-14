@@ -7,30 +7,30 @@ const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#fff',
-    padding: 30,
+    padding: 20,
     fontFamily: 'Helvetica',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
     borderBottom: '2px solid #FF6F00',
-    paddingBottom: 15,
+    paddingBottom: 10,
   },
   headerLogo: {
-    width: 150,
-    height: 50,
+    width: 120,
+    height: 40,
     marginRight: 20,
   },
   headerText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 12,
     color: '#FF6F00',
     fontFamily: 'Helvetica-Bold',
   },
   title: {
-    fontSize: 24,
-    marginBottom: 25,
+    fontSize: 18,
+    marginBottom: 15,
     textAlign: 'center',
     fontFamily: 'Helvetica-Bold',
     color: '#333',
@@ -39,41 +39,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 2,
     borderBottomColor: '#FF6F00',
-    paddingBottom: 8,
-    marginBottom: 12,
+    paddingBottom: 6,
+    marginBottom: 8,
     backgroundColor: '#FFF5E6',
-    padding: 8,
+    padding: 6,
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#999',
-    paddingVertical: 10,
+    paddingVertical: 6,
+    minHeight: 50,
   },
-  col1: { width: '25%' },
-  col2: { width: '15%' },
-  col3: { width: '15%' },
-  col4: { width: '15%' },
-  col5: { width: '30%' },
+  col1: { width: '20%', fontSize: 9 },
+  col2: { width: '12%', fontSize: 9 },
+  col3: { width: '12%', fontSize: 9 },
+  col4: { width: '12%', fontSize: 9 },
+  col5: { width: '22%', fontSize: 9 },
+  col6: { width: '22%', fontSize: 9 },
   eventInfo: {
-    marginBottom: 25,
-    padding: 12,
+    marginBottom: 15,
+    padding: 8,
     backgroundColor: '#FFF5E6',
     borderRadius: 4,
     borderLeft: '3px solid #FF6F00',
+    fontSize: 9,
   },
   footer: {
     position: 'absolute',
-    bottom: 40,
-    left: 30,
-    right: 30,
+    bottom: 20,
+    left: 20,
+    right: 20,
     borderTop: '2px solid #FF6F00',
-    paddingTop: 15,
+    paddingTop: 10,
   },
   footerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 9,
+    fontSize: 8,
   },
   footerLeft: {
     flex: 1,
@@ -90,20 +93,40 @@ const styles = StyleSheet.create({
     color: '#FF6F00',
   },
   tagline: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#FF6F00',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     fontStyle: 'italic',
   },
   inviteSentBadge: {
     color: '#FF6F00',
     fontFamily: 'Helvetica-Bold',
+    fontSize: 9,
   },
   inviteDate: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#666',
-    marginTop: 2,
+    marginTop: 1,
+  },
+  checklistContainer: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  checkbox: {
+    width: 8,
+    height: 8,
+    border: '1px solid #666',
+    marginRight: 2,
+  },
+  checkboxLabel: {
+    fontSize: 8,
+    color: '#333',
   },
 });
 
@@ -149,6 +172,7 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
           <Text style={styles.col3}>Priority</Text>
           <Text style={styles.col4}>Status</Text>
           <Text style={styles.col5}>Invite Status</Text>
+          <Text style={styles.col6}>Checklist</Text>
         </View>
 
         {guests.map((guest) => {
@@ -167,7 +191,7 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
                 </Text>
                 {eventGuest?.invite_sent_at && (
                   <Text style={styles.inviteDate}>
-                    Sent on: {new Date(eventGuest.invite_sent_at).toLocaleDateString()}
+                    Sent: {new Date(eventGuest.invite_sent_at).toLocaleDateString()}
                   </Text>
                 )}
                 {eventGuest?.invite_method && (
@@ -175,6 +199,24 @@ export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) 
                     Via: {eventGuest.invite_method}
                   </Text>
                 )}
+              </View>
+              <View style={[styles.col6, styles.checklistContainer]}>
+                <View style={styles.checkboxRow}>
+                  <View style={styles.checkbox} />
+                  <Text style={styles.checkboxLabel}>Arrived</Text>
+                </View>
+                <View style={styles.checkboxRow}>
+                  <View style={styles.checkbox} />
+                  <Text style={styles.checkboxLabel}>Plus One</Text>
+                </View>
+                <View style={styles.checkboxRow}>
+                  <View style={styles.checkbox} />
+                  <Text style={styles.checkboxLabel}>Gift Received</Text>
+                </View>
+                <View style={styles.checkboxRow}>
+                  <View style={styles.checkbox} />
+                  <Text style={styles.checkboxLabel}>Thank You Sent</Text>
+                </View>
               </View>
             </View>
           );
