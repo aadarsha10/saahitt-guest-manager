@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Event } from "@/types/event";
 import {
   Table,
@@ -15,9 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Download } from "lucide-react";
 import EventGuestManager from "./EventGuestManager";
-import { useEvents } from "@/hooks/useEvents";
-import { useEventGuests } from "@/hooks/useEventGuests";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
+import { useEventData } from "@/hooks/useEventData";
+import { useEventGuests } from "@/hooks/useEventGuests";
 
 const EventList = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -25,19 +25,23 @@ const EventList = () => {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [previewEvent, setPreviewEvent] = useState<Event | null>(null);
   
-  const { events, fetchEvents, handleEventUpdate, handleEventDelete } = useEvents();
+  const { events, isLoading, updateEvent, deleteEvent } = useEventData();
   const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle, handleBulkGuestToggle, updateInviteStatus } = useEventGuests();
 
-  useEffect(() => {
-    fetchEvents();
+  // Fetch guests and event guests on component mount
+  useState(() => {
     fetchGuests();
     fetchEventGuests();
-  }, []);
+  });
 
   const handleDownloadClick = (event: Event) => {
     setPreviewEvent(event);
     setPdfPreviewOpen(true);
   };
+
+  if (isLoading) {
+    return <div>Loading events...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -93,8 +97,8 @@ const EventList = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            handleEventUpdate(editingEvent).then((success) => {
-                              if (success) setEditingEvent(null);
+                            updateEvent.mutate(editingEvent, {
+                              onSuccess: () => setEditingEvent(null)
                             });
                           }}
                         >
@@ -136,8 +140,12 @@ const EventList = () => {
                           variant="destructive"
                           size="sm"
                           onClick={() => {
-                            handleEventDelete(event.id).then((success) => {
-                              if (success) setSelectedEvent(null);
+                            deleteEvent.mutate(event.id, {
+                              onSuccess: () => {
+                                if (selectedEvent?.id === event.id) {
+                                  setSelectedEvent(null);
+                                }
+                              }
                             });
                           }}
                         >

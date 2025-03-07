@@ -1,6 +1,4 @@
-
-import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Download } from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
+import { useToast } from "@/components/ui/use-toast";
+import { useGuestData } from "@/hooks/useGuestData";
+import { useQuery } from "@tanstack/react-query";
 
 const priorityColors = {
   High: "bg-red-100 text-red-800",
@@ -33,70 +34,35 @@ const statusColors = {
 };
 
 const GuestList = () => {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const { toast } = useToast();
+  const { guests, isLoading } = useGuestData();
 
-  useEffect(() => {
-    fetchCustomFields();
-    fetchGuests();
-  }, []);
-
-  const fetchCustomFields = async () => {
-    try {
+  const { data: customFields = [] } = useQuery({
+    queryKey: ['customFields'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_fields")
         .select("*")
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch custom fields",
+        });
+        throw error;
+      }
 
-      const typedData = data?.map(field => ({
+      return data?.map(field => ({
         ...field,
         field_type: field.field_type as CustomField['field_type'],
         options: field.options as string[] || []
       })) || [];
-
-      setCustomFields(typedData);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch custom fields",
-      });
     }
-  };
-
-  const fetchGuests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("guests")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      
-      const validGuests = (data || []).map((guest): Guest => ({
-        ...guest,
-        priority: guest.priority as Guest['priority'],
-        status: guest.status as Guest['status'],
-        custom_values: guest.custom_values || {},
-      }));
-      
-      setGuests(validGuests);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch guests",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  });
 
   const handleFilterChange = (field: string, value: string) => {
     if (value === "all") {

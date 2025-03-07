@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PlusCircle, Trash2, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { NewGuest } from "@/types/guest";
 import { generateGuestTemplate, parseGuestFile } from "@/utils/excelUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AddGuestFormProps {
   onSuccess: () => void;
@@ -38,6 +38,7 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleInputChange = (index: number, field: keyof NewGuest, value: string) => {
     const updatedForms = [...guestForms];
@@ -153,6 +154,9 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
 
       if (error) throw error;
 
+      // Invalidate guests query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['guests'] });
+      
       toast({
         title: "Success",
         description: `${guestForms.length} guest(s) added successfully`,

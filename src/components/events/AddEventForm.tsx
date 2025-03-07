@@ -1,12 +1,13 @@
 
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NewEvent } from "@/types/event";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AddEventFormProps {
   onSuccess: () => void;
@@ -18,6 +19,7 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +41,9 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
         .insert(newEvent);
 
       if (error) throw error;
+
+      // Invalidate events query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['events'] });
 
       toast({
         title: "Success",

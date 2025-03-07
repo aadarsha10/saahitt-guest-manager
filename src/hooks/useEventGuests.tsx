@@ -4,42 +4,52 @@ import { useToast } from "@/components/ui/use-toast";
 import { EventGuest } from "@/types/event";
 import { Guest } from "@/types/guest";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const useEventGuests = () => {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [eventGuests, setEventGuests] = useState<Record<string, EventGuest[]>>({});
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchGuests = async () => {
-    try {
+  const { data: guests = [] } = useQuery({
+    queryKey: ['guests'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("guests")
         .select("*")
         .order("first_name", { ascending: true });
 
-      if (error) throw error;
-      const typedGuests: Guest[] = data?.map(guest => ({
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch guests",
+        });
+        throw error;
+      }
+      
+      return data?.map(guest => ({
         ...guest,
         priority: guest.priority as 'High' | 'Medium' | 'Low',
         status: guest.status as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending'
       })) || [];
-      setGuests(typedGuests);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch guests",
-      });
     }
-  };
+  });
 
-  const fetchEventGuests = async () => {
-    try {
+  const { data: eventGuests = {} } = useQuery({
+    queryKey: ['eventGuests'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("event_guests")
         .select("*");
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch event guests",
+        });
+        throw error;
+      }
 
       const guestsByEvent: Record<string, EventGuest[]> = {};
       (data || []).forEach((eg: EventGuest) => {
@@ -48,20 +58,17 @@ export const useEventGuests = () => {
         }
         guestsByEvent[eg.event_id].push(eg);
       });
-      setEventGuests(guestsByEvent);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch event guests",
-      });
+      
+      return guestsByEvent;
     }
-  };
+  });
 
-  const handleGuestToggle = async (eventId: string, guestId: string) => {
-    const isCurrentlySelected = eventGuests[eventId]?.some(eg => eg.guest_id === guestId);
-    
-    try {
+  const toggleGuestMutation = useMutation({
+    mutationFn: async ({ eventId, guestId, isCurrentlySelected }: { 
+      eventId: string; 
+      guestId: string; 
+      isCurrentlySelected: boolean 
+    }) => {
       if (isCurrentlySelected) {
         const { error } = await supabase
           .from("event_guests")
@@ -77,23 +84,35 @@ export const useEventGuests = () => {
 
         if (error) throw error;
       }
-
-      await fetchEventGuests();
+      
+      return { eventId, guestId, isCurrentlySelected };
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['eventGuests'] });
       toast({
         title: "Success",
-        description: `Guest ${isCurrentlySelected ? "removed from" : "added to"} event`,
+        description: `Guest ${variables.isCurrentlySelected ? "removed from" : "added to"} event`,
       });
-    } catch (error: any) {
+    },
+    onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to update event guests",
       });
     }
-  };
+  });
 
-  const handleBulkGuestToggle = async (eventId: string, guestIds: string[], add: boolean) => {
-    try {
+  const bulkToggleGuestsMutation = useMutation({
+    mutationFn: async ({ 
+      eventId, 
+      guestIds, 
+      add 
+    }: { 
+      eventId: string; 
+      guestIds: string[]; 
+      add: boolean 
+    }) => {
       if (add) {
         const newEventGuests = guestIds.map(guestId => ({
           event_id: eventId,
@@ -114,31 +133,39 @@ export const useEventGuests = () => {
 
         if (error) throw error;
       }
-
-      await fetchEventGuests();
+      
+      return { eventId, guestIds, add };
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['eventGuests'] });
       toast({
         title: "Success",
-        description: `${guestIds.length} guests ${add ? "added to" : "removed from"} event`,
+        description: `${variables.guestIds.length} guests ${variables.add ? "added to" : "removed from"} event`,
       });
-    } catch (error: any) {
+    },
+    onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to update event guests",
       });
     }
-  };
+  });
 
-  const updateInviteStatus = async (
-    eventId: string, 
-    guestId: string, 
-    details: {
-      invite_sent: boolean;
-      invite_method?: string;
-      invite_notes?: string;
-    }
-  ) => {
-    try {
+  const updateInviteStatusMutation = useMutation({
+    mutationFn: async ({ 
+      eventId, 
+      guestId, 
+      details 
+    }: { 
+      eventId: string; 
+      guestId: string; 
+      details: {
+        invite_sent: boolean;
+        invite_method?: string;
+        invite_notes?: string;
+      }
+    }) => {
       const { error } = await supabase
         .from("event_guests")
         .update({
@@ -149,26 +176,51 @@ export const useEventGuests = () => {
         .eq("guest_id", guestId);
 
       if (error) throw error;
-
-      await fetchEventGuests();
+      
+      return { eventId, guestId, details };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eventGuests'] });
       toast({
         title: "Success",
         description: "Invite status updated successfully",
       });
-    } catch (error: any) {
+    },
+    onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to update invite status",
       });
     }
+  });
+
+  const handleGuestToggle = (eventId: string, guestId: string) => {
+    const isCurrentlySelected = eventGuests[eventId]?.some(eg => eg.guest_id === guestId);
+    toggleGuestMutation.mutate({ eventId, guestId, isCurrentlySelected });
+  };
+
+  const handleBulkGuestToggle = (eventId: string, guestIds: string[], add: boolean) => {
+    bulkToggleGuestsMutation.mutate({ eventId, guestIds, add });
+  };
+
+  const updateInviteStatus = (
+    eventId: string, 
+    guestId: string, 
+    details: {
+      invite_sent: boolean;
+      invite_method?: string;
+      invite_notes?: string;
+    }
+  ) => {
+    updateInviteStatusMutation.mutate({ eventId, guestId, details });
   };
 
   return {
     guests,
     eventGuests,
-    fetchGuests,
-    fetchEventGuests,
+    fetchGuests: () => queryClient.invalidateQueries({ queryKey: ['guests'] }),
+    fetchEventGuests: () => queryClient.invalidateQueries({ queryKey: ['eventGuests'] }),
     handleGuestToggle,
     handleBulkGuestToggle,
     updateInviteStatus,

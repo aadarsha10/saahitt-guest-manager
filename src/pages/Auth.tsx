@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [authData, setAuthData] = useState({
@@ -18,6 +18,44 @@ const Auth = () => {
     firstName: "",
     lastName: "",
   });
+
+  // Check for existing session on component mount and redirect if already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+
+  // Set up auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          navigate("/dashboard");
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  // Parse URL params to determine initial tab
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab === "signup" ? "signup" : "signin");
+    }
+  }, [location]);
+
+  const [activeTab, setActiveTab] = useState("signin");
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +114,7 @@ const Auth = () => {
         throw error;
       }
       
-      navigate("/dashboard");
+      // Navigate will happen automatically via the auth state change listener
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -95,7 +133,7 @@ const Auth = () => {
           <CardTitle className="text-center">Welcome to Saahitt Guest Manager</CardTitle>
           <CardDescription className="text-center">Sign in or create an account to get started</CardDescription>
         </CardHeader>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

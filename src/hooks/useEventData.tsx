@@ -1,10 +1,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
-import { Event } from "@/types/event";
 import { supabase } from "@/integrations/supabase/client";
+import { Event } from "@/types/event";
+import { useToast } from "@/components/ui/use-toast";
 
-export const useEvents = () => {
+export function useEventData() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -17,9 +17,9 @@ export const useEvents = () => {
     queryKey: ['events'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .order("date", { ascending: true });
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
 
       if (error) {
         toast({
@@ -34,16 +34,42 @@ export const useEvents = () => {
     },
   });
 
-  const handleEventUpdate = useMutation({
+  const addEvent = useMutation({
+    mutationFn: async (newEvent: Omit<Event, 'id'>) => {
+      const { data, error } = await supabase
+        .from('events')
+        .insert(newEvent)
+        .select();
+
+      if (error) throw error;
+      return data?.[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast({
+        title: "Success",
+        description: "Event added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add event",
+      });
+    },
+  });
+
+  const updateEvent = useMutation({
     mutationFn: async (event: Event) => {
       const { error } = await supabase
-        .from("events")
+        .from('events')
         .update({
           name: event.name,
           description: event.description,
           date: event.date,
         })
-        .eq("id", event.id);
+        .eq('id', event.id);
 
       if (error) throw error;
       return event;
@@ -55,24 +81,24 @@ export const useEvents = () => {
         description: "Event updated successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to update event",
       });
-    }
+    },
   });
 
-  const handleEventDelete = useMutation({
-    mutationFn: async (eventId: string) => {
+  const deleteEvent = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("events")
+        .from('events')
         .delete()
-        .eq("id", eventId);
+        .eq('id', id);
 
       if (error) throw error;
-      return eventId;
+      return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -81,20 +107,22 @@ export const useEvents = () => {
         description: "Event deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to delete event",
       });
-    }
+    },
   });
 
   return {
     events,
     isLoading,
-    fetchEvents: refetch,
-    handleEventUpdate: (event: Event) => handleEventUpdate.mutate(event),
-    handleEventDelete: (eventId: string) => handleEventDelete.mutate(eventId),
+    error,
+    refetch,
+    addEvent,
+    updateEvent,
+    deleteEvent,
   };
-};
+}
