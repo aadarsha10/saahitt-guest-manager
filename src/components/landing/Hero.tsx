@@ -1,10 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, X } from "lucide-react";
 
 export const Hero = () => {
   return (
-    <div className="pt-32 pb-20 text-center bg-[#FAF3E0]">
+    <div className="pt-32 pb-20 text-center bg-[#FAF3E0]" id="hero">
       <div className="container mx-auto px-4">
         <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in text-[#2C2C2C]">
           Effortless Event Invitations,
@@ -15,7 +16,7 @@ export const Hero = () => {
           rank invites, and export with ease—all in a few clicks.
         </p>
         <div className="flex justify-center space-x-4 animate-fade-in">
-          <Link to="/signup">
+          <Link to="/auth?tab=signup">
             <Button size="lg" className="text-lg px-8 bg-[#FF6F00] hover:bg-[#FF6F00]/90 text-white">
               Start Free <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
