@@ -12,7 +12,8 @@ export function useGuestData() {
     data: guests = [], 
     isLoading,
     error,
-    refetch
+    refetch,
+    isFetching
   } = useQuery({
     queryKey: ['guests'],
     queryFn: async () => {
@@ -37,6 +38,32 @@ export function useGuestData() {
         custom_values: guest.custom_values || {},
       }));
     },
+    staleTime: 1000, // Set a shorter stale time to refresh data more frequently
+  });
+
+  const addGuests = useMutation({
+    mutationFn: async (newGuests: NewGuest[]) => {
+      const { error } = await supabase
+        .from('guests')
+        .insert(newGuests);
+
+      if (error) throw error;
+      return newGuests;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guests'] });
+      toast({
+        title: "Success",
+        description: "Guests added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add guests",
+      });
+    },
   });
 
   const updateGuest = useMutation({
@@ -56,11 +83,11 @@ export function useGuestData() {
         description: "Guest updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update guest",
+        description: error.message || "Failed to update guest",
       });
     },
   });
@@ -82,11 +109,11 @@ export function useGuestData() {
         description: "Guest deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete guest",
+        description: error.message || "Failed to delete guest",
       });
     },
   });
@@ -94,8 +121,10 @@ export function useGuestData() {
   return {
     guests,
     isLoading,
+    isFetching,
     error,
     refetch,
+    addGuests,
     updateGuest,
     deleteGuest,
   };

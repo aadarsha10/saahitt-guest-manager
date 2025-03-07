@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { PlusCircle, Trash2, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { generateGuestTemplate, parseGuestFile } from "@/utils/excelUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useQueryClient } from "@tanstack/react-query";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface AddGuestFormProps {
   onSuccess: () => void;
@@ -37,6 +39,7 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
   }]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -118,6 +121,7 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
     e.preventDefault();
     
     try {
+      setIsSubmitting(true);
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user?.id) {
         throw new Error("User not authenticated");
@@ -168,12 +172,17 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
         title: "Error",
         description: error.message,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-6">Add Guests</h2>
+      <DialogTitle className="text-2xl font-bold mb-2">Add Guests</DialogTitle>
+      <DialogDescription className="mb-4 text-muted-foreground">
+        Add new guests to your event manually or import from a spreadsheet.
+      </DialogDescription>
       
       <Tabs defaultValue="manual">
         <TabsList className="mb-4">
@@ -295,8 +304,12 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Another Guest
               </Button>
-              <Button type="submit" className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
-                Save All Guests
+              <Button 
+                type="submit" 
+                className="bg-[#FF6F00] hover:bg-[#FF6F00]/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save All Guests"}
               </Button>
             </div>
           </form>
@@ -347,8 +360,9 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
                   type="button"
                   onClick={handleSubmit}
                   className="bg-[#FF6F00] hover:bg-[#FF6F00]/90"
+                  disabled={isSubmitting}
                 >
-                  Import {guestForms.length} Guests
+                  {isSubmitting ? "Importing..." : `Import ${guestForms.length} Guests`}
                 </Button>
               </div>
             )}

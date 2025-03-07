@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,11 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useGuestData } from "@/hooks/useGuestData";
 import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const priorityColors = {
   High: "bg-red-100 text-red-800",
@@ -37,9 +39,9 @@ const GuestList = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const { toast } = useToast();
-  const { guests, isLoading } = useGuestData();
+  const { guests, isLoading, isFetching, refetch } = useGuestData();
 
-  const { data: customFields = [] } = useQuery({
+  const { data: customFields = [], isLoading: isLoadingFields } = useQuery({
     queryKey: ['customFields'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,9 +92,7 @@ const GuestList = () => {
     });
   });
 
-  if (isLoading) {
-    return <div>Loading guests...</div>;
-  }
+  const loading = isLoading || isLoadingFields;
 
   return (
     <div className="space-y-4">
@@ -100,61 +100,73 @@ const GuestList = () => {
         <div className="grid grid-cols-4 gap-4 flex-1">
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select
-              value={filters.category || "all"}
-              onValueChange={(value) => handleFilterChange('category', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Family">Family</SelectItem>
-                <SelectItem value="Friends">Friends</SelectItem>
-                <SelectItem value="Work">Work</SelectItem>
-                <SelectItem value="Others">Others</SelectItem>
-              </SelectContent>
-            </Select>
+            {loading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.category || "all"}
+                onValueChange={(value) => handleFilterChange('category', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="Family">Family</SelectItem>
+                  <SelectItem value="Friends">Friends</SelectItem>
+                  <SelectItem value="Work">Work</SelectItem>
+                  <SelectItem value="Others">Others</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>Priority</Label>
-            <Select
-              value={filters.priority || "all"}
-              onValueChange={(value) => handleFilterChange('priority', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            {loading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.priority || "all"}
+                onValueChange={(value) => handleFilterChange('priority', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select
-              value={filters.status || "all"}
-              onValueChange={(value) => handleFilterChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                <SelectItem value="Maybe">Maybe</SelectItem>
-                <SelectItem value="Unavailable">Unavailable</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
+            {loading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.status || "all"}
+                onValueChange={(value) => handleFilterChange('status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed</SelectItem>
+                  <SelectItem value="Maybe">Maybe</SelectItem>
+                  <SelectItem value="Unavailable">Unavailable</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
-          {customFields.map(field => (
+          {!loading && customFields.map(field => (
             <div key={field.id} className="space-y-2">
               <Label>{field.name}</Label>
               {field.field_type === 'select' ? (
@@ -178,14 +190,25 @@ const GuestList = () => {
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setPdfPreviewOpen(true)}
-          className="ml-4"
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Download List
-        </Button>
+        <div className="flex space-x-2 ml-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="h-10 w-10"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPdfPreviewOpen(true)}
+            disabled={loading}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Download List
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -203,38 +226,52 @@ const GuestList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredGuests.map((guest) => (
-              <TableRow key={guest.id}>
-                <TableCell>
-                  {guest.first_name} {guest.last_name}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    {guest.email && <div className="text-sm">{guest.email}</div>}
-                    {guest.phone && <div className="text-sm">{guest.phone}</div>}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{guest.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={priorityColors[guest.priority]}>
-                    {guest.priority}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={statusColors[guest.status]}>
-                    {guest.status}
-                  </Badge>
-                </TableCell>
-                {customFields.map(field => (
-                  <TableCell key={field.id}>
-                    {String(guest.custom_values[field.name] || '-')}
+            {loading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  {customFields.map(field => (
+                    <TableCell key={field.id}><Skeleton className="h-5 w-20" /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : filteredGuests.length > 0 ? (
+              filteredGuests.map((guest) => (
+                <TableRow key={guest.id}>
+                  <TableCell>
+                    {guest.first_name} {guest.last_name}
                   </TableCell>
-                ))}
-              </TableRow>
-            ))}
-            {filteredGuests.length === 0 && (
+                  <TableCell>
+                    <div className="space-y-1">
+                      {guest.email && <div className="text-sm">{guest.email}</div>}
+                      {guest.phone && <div className="text-sm">{guest.phone}</div>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{guest.category}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={priorityColors[guest.priority]}>
+                      {guest.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusColors[guest.status]}>
+                      {guest.status}
+                    </Badge>
+                  </TableCell>
+                  {customFields.map(field => (
+                    <TableCell key={field.id}>
+                      {String(guest.custom_values[field.name] || '-')}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
                 <TableCell 
                   colSpan={5 + customFields.length} 
