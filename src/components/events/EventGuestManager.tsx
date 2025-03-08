@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Guest } from "@/types/guest";
 import { EventGuest, InviteMethod } from "@/types/event";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Mail, MessageSquare, Phone, UserCircle, MoreHorizontal } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Search, Mail, MessageSquare, Phone, UserCircle, MoreHorizontal, CheckCircle, UserPlus } from "lucide-react";
 
 interface EventGuestManagerProps {
   event: { id: string; name: string };
@@ -44,10 +45,27 @@ const EventGuestManager = ({
   const [selectedInviteMethod, setSelectedInviteMethod] = useState<InviteMethod>("Email");
   const [inviteNotes, setInviteNotes] = useState("");
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("available");
 
   const currentEventGuests = eventGuests[event.id] || [];
+  const currentEventGuestIds = new Set(currentEventGuests.map(eg => eg.guest_id));
 
-  const filteredGuests = guests.filter((guest) => {
+  const availableGuests = guests.filter(guest => !currentEventGuestIds.has(guest.id));
+  const invitedGuests = guests.filter(guest => currentEventGuestIds.has(guest.id));
+
+  const filteredAvailableGuests = availableGuests.filter((guest) => {
+    const matchesSearch = 
+      guest.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guest.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guest.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = categoryFilter === "all" || guest.category === categoryFilter;
+    const matchesStatus = statusFilter === "all" || guest.status === statusFilter;
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const filteredInvitedGuests = invitedGuests.filter((guest) => {
     const matchesSearch = 
       guest.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       guest.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,13 +96,23 @@ const EventGuestManager = ({
   };
 
   const handleSelectAll = () => {
-    const filteredGuestIds = filteredGuests.map(guest => guest.id);
-    onBulkGuestToggle(event.id, filteredGuestIds, true);
+    const guestIds = activeTab === "available" 
+      ? filteredAvailableGuests.map(guest => guest.id)
+      : [];
+    
+    if (guestIds.length > 0) {
+      onBulkGuestToggle(event.id, guestIds, true);
+    }
   };
 
   const handleDeselectAll = () => {
-    const filteredGuestIds = filteredGuests.map(guest => guest.id);
-    onBulkGuestToggle(event.id, filteredGuestIds, false);
+    const guestIds = activeTab === "invited" 
+      ? filteredInvitedGuests.map(guest => guest.id)
+      : [];
+    
+    if (guestIds.length > 0) {
+      onBulkGuestToggle(event.id, guestIds, false);
+    }
   };
 
   const getInviteMethodIcon = (method: InviteMethod) => {
@@ -107,193 +135,235 @@ const EventGuestManager = ({
     setInviteNotes("");
   };
 
-  return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold">Manage Guests for {event.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Select guests to invite to this event
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {/* Search and Filters */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search guests..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select
-                value={categoryFilter}
-                onValueChange={setCategoryFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Family">Family</SelectItem>
-                  <SelectItem value="Friends">Friends</SelectItem>
-                  <SelectItem value="Work">Work</SelectItem>
-                  <SelectItem value="Others">Others</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Maybe">Maybe</SelectItem>
-                  <SelectItem value="Unavailable">Unavailable</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Bulk Actions */}
-          <div className="flex space-x-4">
-            <Button variant="outline" onClick={handleSelectAll}>
-              Select All Filtered
-            </Button>
-            <Button variant="outline" onClick={handleDeselectAll}>
-              Deselect All Filtered
-            </Button>
-          </div>
-
-          {/* Guest List */}
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {filteredGuests.map((guest) => {
-              const eventGuest = currentEventGuests.find(eg => eg.guest_id === guest.id);
-              return (
-                <div key={guest.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`guest-${guest.id}`}
-                      checked={eventGuest !== undefined}
-                      onCheckedChange={() => onGuestToggle(event.id, guest.id)}
-                    />
-                    <div>
-                      <label
-                        htmlFor={`guest-${guest.id}`}
-                        className="text-sm font-medium leading-none"
-                      >
-                        {guest.first_name} {guest.last_name}
-                      </label>
-                      {guest.email && (
-                        <p className="text-sm text-gray-500">{guest.email}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getCategoryColor(guest.category)}>
-                      {guest.category}
-                    </Badge>
-                    <Badge className={getStatusColor(guest.status)}>
-                      {guest.status}
-                    </Badge>
-                    {eventGuest && (
-                      <>
-                        {eventGuest.invite_sent ? (
-                          <Badge variant="outline" className="bg-green-50">
-                            {getInviteMethodIcon(eventGuest.invite_method as InviteMethod)}
-                            <span className="ml-1">Invite Sent</span>
-                          </Badge>
-                        ) : (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSelectedGuestId(guest.id)}
-                              >
-                                Mark Invite Sent
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Update Invite Status</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                  <Label>Invite Method</Label>
-                                  <Select
-                                    value={selectedInviteMethod}
-                                    onValueChange={(value) => setSelectedInviteMethod(value as InviteMethod)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Email">Email</SelectItem>
-                                      <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                                      <SelectItem value="Phone">Phone</SelectItem>
-                                      <SelectItem value="In Person">In Person</SelectItem>
-                                      <SelectItem value="Other">Other</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Notes</Label>
-                                  <Textarea
-                                    value={inviteNotes}
-                                    onChange={(e) => setInviteNotes(e.target.value)}
-                                    placeholder="Add any notes about the invitation..."
-                                  />
-                                </div>
-                                <Button
-                                  onClick={() => handleInviteStatusUpdate(guest.id)}
-                                  className="w-full"
-                                >
-                                  Update Status
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {filteredGuests.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No guests found matching your filters.
-              </div>
+  const renderGuestItem = (guest: Guest, isInvited: boolean) => {
+    const eventGuest = currentEventGuests.find(eg => eg.guest_id === guest.id);
+    
+    return (
+      <div key={guest.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-2 hover:bg-gray-100 transition-colors">
+        <div className="flex items-center space-x-3 flex-1">
+          <Checkbox
+            id={`guest-${guest.id}`}
+            checked={isInvited}
+            onCheckedChange={() => onGuestToggle(event.id, guest.id)}
+          />
+          <div className="flex-1">
+            <label
+              htmlFor={`guest-${guest.id}`}
+              className="text-sm font-medium leading-none cursor-pointer"
+            >
+              {guest.first_name} {guest.last_name}
+            </label>
+            {guest.email && (
+              <p className="text-sm text-gray-500">{guest.email}</p>
             )}
           </div>
+          <div className="flex items-center space-x-2">
+            <Badge className={getCategoryColor(guest.category)}>
+              {guest.category}
+            </Badge>
+            <Badge className={getStatusColor(guest.status)}>
+              {guest.status}
+            </Badge>
+          </div>
         </div>
+        {isInvited && (
+          <div className="ml-4">
+            {eventGuest?.invite_sent ? (
+              <Badge variant="outline" className="bg-green-50 flex items-center gap-1">
+                {getInviteMethodIcon(eventGuest.invite_method as InviteMethod)}
+                <span>Invite Sent</span>
+              </Badge>
+            ) : (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedGuestId(guest.id)}
+                  >
+                    Mark Invite Sent
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Update Invite Status</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Invite Method</Label>
+                      <Select
+                        value={selectedInviteMethod}
+                        onValueChange={(value) => setSelectedInviteMethod(value as InviteMethod)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Email">Email</SelectItem>
+                          <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                          <SelectItem value="Phone">Phone</SelectItem>
+                          <SelectItem value="In Person">In Person</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notes</Label>
+                      <Textarea
+                        value={inviteNotes}
+                        onChange={(e) => setInviteNotes(e.target.value)}
+                        placeholder="Add any notes about the invitation..."
+                      />
+                    </div>
+                    <Button
+                      onClick={() => handleInviteStatusUpdate(guest.id)}
+                      className="w-full"
+                    >
+                      Update Status
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card className="shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Manage Guests for {event.name}</CardTitle>
+        <CardDescription>
+          Select guests to invite to this event and track invitation status
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Search and Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search guests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          
+          <div className="space-y-1">
+            <Label className="text-xs">Category</Label>
+            <Select
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Friends">Friends</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
+                <SelectItem value="Others">Others</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Status</Label>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Maybe">Maybe</SelectItem>
+                <SelectItem value="Unavailable">Unavailable</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="available" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              <span>Available Guests ({filteredAvailableGuests.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="invited" className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              <span>Invited Guests ({filteredInvitedGuests.length})</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Bulk Actions */}
+          <div className="flex justify-end space-x-4 mt-4">
+            {activeTab === "available" ? (
+              <Button 
+                variant="outline" 
+                onClick={handleSelectAll}
+                disabled={filteredAvailableGuests.length === 0}
+                size="sm"
+              >
+                Add All Filtered
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={handleDeselectAll}
+                disabled={filteredInvitedGuests.length === 0}
+                size="sm"
+              >
+                Remove All Filtered
+              </Button>
+            )}
+          </div>
+
+          {/* Guest Lists */}
+          <TabsContent value="available" className="mt-4 space-y-2">
+            <div className="max-h-[400px] overflow-y-auto border rounded-md p-2 bg-gray-50">
+              {filteredAvailableGuests.length > 0 ? (
+                filteredAvailableGuests.map(guest => renderGuestItem(guest, false))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No available guests found matching your filters.
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="invited" className="mt-4 space-y-2">
+            <div className="max-h-[400px] overflow-y-auto border rounded-md p-2 bg-green-50">
+              {filteredInvitedGuests.length > 0 ? (
+                filteredInvitedGuests.map(guest => renderGuestItem(guest, true))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No invited guests found matching your filters.
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <div className="border-t pt-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">
-              Total Selected: {currentEventGuests.length} guests
+              Total Invited: {currentEventGuests.length} guests
             </p>
             <p className="text-sm text-gray-500">
               Invites Sent: {currentEventGuests.filter(eg => eg.invite_sent).length} guests
             </p>
           </div>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 };
