@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Users, CalendarDays, Settings, ListFilter } from "lucide-react";
+import { PlusCircle, Users, CalendarDays, Settings, ListFilter, Mail, Calendar, ChevronRight, CircleCheck, BarChart4, Trophy, Clock, BookCheck, BookX } from "lucide-react";
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
@@ -17,6 +17,12 @@ import AddEventForm from "@/components/events/AddEventForm";
 import EventList from "@/components/events/EventList";
 import AccountSettings from "@/components/settings/AccountSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGuestData } from "@/hooks/useGuestData";
+import { useEventData } from "@/hooks/useEventData";
+import { useEventGuests } from "@/hooks/useEventGuests";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import DashboardHome from "@/components/dashboard/DashboardHome";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -25,7 +31,7 @@ const Dashboard = () => {
   const [guestFormOpen, setGuestFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("guests");
+  const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
     checkUser();
@@ -100,6 +106,10 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white p-1 space-x-2">
+            <TabsTrigger value="home" className="space-x-2">
+              <BarChart4 className="h-4 w-4" />
+              <span>Dashboard</span>
+            </TabsTrigger>
             <TabsTrigger value="guests" className="space-x-2">
               <Users className="h-4 w-4" />
               <span>Guest List</span>
@@ -117,6 +127,10 @@ const Dashboard = () => {
               <span>Settings</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="home">
+            <DashboardHome profile={profile} />
+          </TabsContent>
 
           <TabsContent value="guests">
             <div className="grid gap-6">
