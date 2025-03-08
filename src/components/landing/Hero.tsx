@@ -2,32 +2,82 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, X } from "lucide-react";
+import { Mockup, MockupFrame } from "@/components/ui/mockup";
 
 export const Hero = () => {
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="pt-32 pb-20 text-center bg-[#FAF3E0]" id="hero">
+    <div className="pt-32 pb-0 text-center bg-[#FAF3E0]" id="hero">
       <div className="container mx-auto px-4">
-        <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in text-[#2C2C2C]">
-          Effortless Event Invitations,
-          <span className="text-[#FF6F00]"> Smarter Guest Management!</span>
+        {/* Eyebrow text */}
+        <p className="font-medium uppercase tracking-[0.25em] leading-[133%] text-center text-base md:text-lg mb-6 text-[#00796B] animate-fade-in">
+          AI-POWERED EVENT MANAGEMENT
+        </p>
+
+        {/* Main heading */}
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in delay-100 text-[#2C2C2C] max-w-5xl mx-auto">
+          <span className="font-bold">Effortless Event Invitations, </span>
+          <span className="text-[#FF6F00] font-bold italic">Smarter </span>
+          <span className="font-bold">Guest Management!</span>
         </h1>
-        <p className="text-xl text-[#2C2C2C] mb-8 max-w-2xl mx-auto animate-fade-in">
+        
+        <p className="text-xl text-[#2C2C2C] mb-8 max-w-3xl mx-auto animate-fade-in delay-200">
           Say goodbye to messy spreadsheets and manual tracking. Organize your event guest list, 
           rank invites, and export with ease—all in a few clicks.
         </p>
-        <div className="flex justify-center space-x-4 animate-fade-in">
-          <Link to="/auth?tab=signup">
-            <Button size="lg" className="text-lg px-8 bg-[#FF6F00] hover:bg-[#FF6F00]/90 text-white">
-              Start Free <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-          <Button size="lg" variant="outline" className="text-lg px-8 border-[#00796B] text-[#00796B] hover:bg-[#00796B] hover:text-white">
+        
+        <div className="flex justify-center space-x-4 animate-fade-in delay-300">
+          <Button 
+            size="lg" 
+            className="text-lg px-8 bg-[#FF6F00] hover:bg-[#FF6F00]/90 text-white h-[49px] rounded-[10px]"
+            onClick={() => window.location.href = '/auth?tab=signup'}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-lg whitespace-nowrap">Start Free</span>
+              <ArrowRight className="ml-3 h-5 w-5" />
+            </div>
+          </Button>
+          
+          <Button 
+            size="lg" 
+            variant="outline" 
+            className="text-lg px-8 border-[#00796B] text-[#00796B] hover:bg-[#00796B] hover:text-white h-[49px] rounded-[10px]"
+            onClick={() => scrollToSection('how-it-works')}
+          >
             Watch Demo
           </Button>
         </div>
 
+        {/* Mockup Frame */}
+        <div className="mt-20 w-full relative animate-fade-in delay-500">
+          <MockupFrame>
+            <Mockup type="responsive">
+              <div className="bg-white p-4 rounded-b-lg">
+                <img 
+                  src="/placeholder.svg" 
+                  alt="Guest Management Dashboard" 
+                  className="w-full rounded-lg shadow-md"
+                />
+              </div>
+            </Mockup>
+          </MockupFrame>
+          <div
+            className="absolute bottom-0 left-0 right-0 w-full h-[200px]"
+            style={{
+              background: "linear-gradient(to top, #FAF3E0 0%, rgba(250, 243, 224, 0) 100%)",
+              zIndex: 10,
+            }}
+          />
+        </div>
+
         {/* Problem-Solution Section */}
-        <div className="mt-32 grid md:grid-cols-2 gap-8 text-left">
+        <div className="mt-20 grid md:grid-cols-2 gap-8 text-left">
           <div className="space-y-6 animate-fade-in bg-white p-8 rounded-lg shadow-lg">
             <h2 className="text-3xl font-bold mb-8 text-[#2C2C2C]">Without This Tool</h2>
             <div className="space-y-4">
@@ -86,8 +136,8 @@ export const Hero = () => {
               </ul>
             </div>
             <div className="md:w-1/2 mt-8 md:mt-0">
-              <div className="bg-[#D9D9D9] w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center">
-                <span className="text-[#2C2C2C]">Guest Input Interface Animation</span>
+              <div className="bg-white w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center overflow-hidden">
+                <img src="/placeholder.svg" alt="Guest Input Interface" className="object-cover h-full w-full" />
               </div>
             </div>
           </div>
@@ -110,8 +160,8 @@ export const Hero = () => {
               </ul>
             </div>
             <div className="md:w-1/2 mt-8 md:mt-0">
-              <div className="bg-[#D9D9D9] w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center">
-                <span className="text-[#2C2C2C]">Ranking System Animation</span>
+              <div className="bg-white w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center overflow-hidden">
+                <img src="/placeholder.svg" alt="Ranking System" className="object-cover h-full w-full" />
               </div>
             </div>
           </div>
@@ -134,8 +184,8 @@ export const Hero = () => {
               </ul>
             </div>
             <div className="md:w-1/2 mt-8 md:mt-0">
-              <div className="bg-[#D9D9D9] w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center">
-                <span className="text-[#2C2C2C]">Export Process Animation</span>
+              <div className="bg-white w-full h-64 rounded-lg shadow-xl hover:scale-105 transition-transform duration-300 flex items-center justify-center overflow-hidden">
+                <img src="/placeholder.svg" alt="Export Process" className="object-cover h-full w-full" />
               </div>
             </div>
           </div>
