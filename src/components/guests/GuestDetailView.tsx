@@ -129,10 +129,16 @@ const GuestDetailView = ({
   const handleCustomValueChange = (field: string, value: string) => {
     setGuestForm((prev) => {
       if (!prev) return null;
+      
+      // Ensure custom_values is treated as an object type
+      const customValues = typeof prev.custom_values === 'object' && prev.custom_values !== null 
+        ? prev.custom_values 
+        : {};
+        
       return {
         ...prev,
         custom_values: {
-          ...(prev.custom_values || {}),
+          ...customValues,
           [field]: value,
         },
       };
