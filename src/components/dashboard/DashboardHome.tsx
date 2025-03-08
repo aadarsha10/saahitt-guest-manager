@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { format, parseISO, isAfter, isBefore, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { useEventGuests } from "@/hooks/useEventGuests";
 import { BarChart, XAxis, YAxis, Bar, Cell, ResponsiveContainer, Tooltip, PieChart, Pie } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "react-router-dom";
-import { Users, Calendar as CalendarIcon, ArrowRight, Mail, Check, Award, Clock, CalendarCheck, CalendarX, ChevronRight, Crown, BadgeCheck, HandWaving } from "lucide-react";
+import { Users, Calendar as CalendarIcon, ArrowRight, Mail, Check, Award, Clock, CalendarCheck, CalendarX, ChevronRight, Crown, BadgeCheck, Star } from "lucide-react";
 import { Event } from "@/types/event";
 
 interface DashboardHomeProps {
@@ -214,7 +213,7 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="mb-4 md:mb-0">
               <div className="flex items-center mb-2">
-                <HandWaving className="h-6 w-6 text-yellow-500 mr-2 animate-[wave_1.5s_ease-in-out_0.5s]" />
+                <Star className="h-6 w-6 text-yellow-500 mr-2 animate-[wave_1.5s_ease-in-out_0.5s]" />
                 <h1 className="text-2xl font-bold text-gray-800">
                   {getGreeting()}, {profile?.first_name}!
                 </h1>
