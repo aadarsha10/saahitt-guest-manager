@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,14 +13,42 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Download,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useGuestData } from "@/hooks/useGuestData";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import GuestDetailView from "./GuestDetailView";
+
+// Category colors for visual distinction
+const categoryColors = {
+  Family: "bg-purple-100 text-purple-800 border-purple-200",
+  Friends: "bg-blue-100 text-blue-800 border-blue-200",
+  Work: "bg-orange-100 text-orange-800 border-orange-200",
+  Others: "bg-gray-100 text-gray-800 border-gray-200",
+};
 
 const priorityColors = {
   High: "bg-red-100 text-red-800",
@@ -38,11 +66,17 @@ const statusColors = {
 const GuestList = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [viewGuestId, setViewGuestId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
-  const { guests, isLoading, isFetching, refetch } = useGuestData();
+  const { guests, isLoading, isFetching, refetch, updateGuest } = useGuestData();
 
+  // Fetch custom fields
   const { data: customFields = [], isLoading: isLoadingFields } = useQuery({
-    queryKey: ['customFields'],
+    queryKey: ["customFields"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_fields")
@@ -58,12 +92,14 @@ const GuestList = () => {
         throw error;
       }
 
-      return data?.map(field => ({
-        ...field,
-        field_type: field.field_type as CustomField['field_type'],
-        options: field.options as string[] || []
-      })) || [];
-    }
+      return (
+        data?.map((field) => ({
+          ...field,
+          field_type: field.field_type as CustomField["field_type"],
+          options: (field.options as string[]) || [],
+        })) || []
+      );
+    },
   });
 
   const handleFilterChange = (field: string, value: string) => {
@@ -72,25 +108,76 @@ const GuestList = () => {
       delete newFilters[field];
       setFilters(newFilters);
     } else {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
         [field]: value,
       }));
     }
   };
 
-  const filteredGuests = guests.filter(guest => {
-    return Object.entries(filters).every(([field, value]) => {
+  // Search functionality
+  const searchGuests = (guest: Guest) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const fullName = `${guest.first_name} ${guest.last_name || ""}`.toLowerCase();
+    const emailMatch = guest.email?.toLowerCase().includes(query) || false;
+    const phoneMatch = guest.phone?.toLowerCase().includes(query) || false;
+    const nameMatch = fullName.includes(query);
+    
+    return nameMatch || emailMatch || phoneMatch;
+  };
+
+  // Apply all filters and search
+  const filteredGuests = guests.filter((guest) => {
+    const filterMatch = Object.entries(filters).every(([field, value]) => {
       if (!value || value === "all") return true;
-      
-      if (field === 'category' || field === 'priority' || field === 'status') {
+
+      if (field === "category" || field === "priority" || field === "status") {
         return guest[field] === value;
       }
-      
+
       const customValue = guest.custom_values?.[field];
       return customValue === value;
     });
+
+    return filterMatch && searchGuests(guest);
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredGuests.length / pageSize);
+  const paginatedGuests = filteredGuests.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  useEffect(() => {
+    // Reset to first page when filters or search changes
+    setCurrentPage(1);
+  }, [filters, searchQuery]);
+
+  const handleGuestClick = (guest: Guest) => {
+    setViewGuestId(guest.id);
+    setEditMode(false);
+  };
+
+  const handleDialogClose = () => {
+    setViewGuestId(null);
+    setEditMode(false);
+  };
+
+  const handleEditClick = () => {
+    setEditMode(true);
+  };
+
+  const handleGuestUpdate = (updatedGuest: Guest) => {
+    updateGuest.mutate(updatedGuest, {
+      onSuccess: () => {
+        setViewGuestId(null);
+        setEditMode(false);
+      },
+    });
+  };
 
   const loading = isLoading || isLoadingFields;
 
@@ -105,7 +192,7 @@ const GuestList = () => {
             ) : (
               <Select
                 value={filters.category || "all"}
-                onValueChange={(value) => handleFilterChange('category', value)}
+                onValueChange={(value) => handleFilterChange("category", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Categories" />
@@ -128,7 +215,7 @@ const GuestList = () => {
             ) : (
               <Select
                 value={filters.priority || "all"}
-                onValueChange={(value) => handleFilterChange('priority', value)}
+                onValueChange={(value) => handleFilterChange("priority", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Priorities" />
@@ -150,7 +237,7 @@ const GuestList = () => {
             ) : (
               <Select
                 value={filters.status || "all"}
-                onValueChange={(value) => handleFilterChange('status', value)}
+                onValueChange={(value) => handleFilterChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Statuses" />
@@ -166,29 +253,30 @@ const GuestList = () => {
             )}
           </div>
 
-          {!loading && customFields.map(field => (
-            <div key={field.id} className="space-y-2">
-              <Label>{field.name}</Label>
-              {field.field_type === 'select' ? (
-                <Select
-                  value={filters[field.name] || "all"}
-                  onValueChange={(value) => handleFilterChange(field.name, value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`All ${field.name}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{`All ${field.name}`}</SelectItem>
-                    {field.options?.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          ))}
+          {!loading &&
+            customFields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <Label>{field.name}</Label>
+                {field.field_type === "select" ? (
+                  <Select
+                    value={filters[field.name] || "all"}
+                    onValueChange={(value) => handleFilterChange(field.name, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`All ${field.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{`All ${field.name}`}</SelectItem>
+                      {field.options?.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+              </div>
+            ))}
         </div>
         <div className="flex space-x-2 ml-4">
           <Button
@@ -198,7 +286,7 @@ const GuestList = () => {
             disabled={isFetching}
             className="h-10 w-10"
           >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
           <Button
             variant="outline"
@@ -211,6 +299,40 @@ const GuestList = () => {
         </div>
       </div>
 
+      {/* Search and pagination controls */}
+      <div className="flex justify-between items-center">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search by name, email, or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Label>Rows per page:</Label>
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => {
+              setPageSize(parseInt(value));
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue placeholder="10" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -220,7 +342,7 @@ const GuestList = () => {
               <TableHead>Category</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
-              {customFields.map(field => (
+              {customFields.map((field) => (
                 <TableHead key={field.id}>{field.name}</TableHead>
               ))}
             </TableRow>
@@ -229,19 +351,35 @@ const GuestList = () => {
             {loading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  {customFields.map(field => (
-                    <TableCell key={field.id}><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  {customFields.map((field) => (
+                    <TableCell key={field.id}>
+                      <Skeleton className="h-5 w-20" />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : filteredGuests.length > 0 ? (
-              filteredGuests.map((guest) => (
-                <TableRow key={guest.id}>
+            ) : paginatedGuests.length > 0 ? (
+              paginatedGuests.map((guest) => (
+                <TableRow 
+                  key={guest.id} 
+                  className="cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleGuestClick(guest)}
+                >
                   <TableCell>
                     {guest.first_name} {guest.last_name}
                   </TableCell>
@@ -252,7 +390,9 @@ const GuestList = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{guest.category}</Badge>
+                    <Badge className={categoryColors[guest.category] || categoryColors.Others}>
+                      {guest.category}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge className={priorityColors[guest.priority]}>
@@ -264,17 +404,17 @@ const GuestList = () => {
                       {guest.status}
                     </Badge>
                   </TableCell>
-                  {customFields.map(field => (
+                  {customFields.map((field) => (
                     <TableCell key={field.id}>
-                      {String(guest.custom_values[field.name] || '-')}
+                      {String(guest.custom_values[field.name] || "-")}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell 
-                  colSpan={5 + customFields.length} 
+                <TableCell
+                  colSpan={5 + customFields.length}
                   className="text-center py-8"
                 >
                   No guests found matching the selected filters.
@@ -284,6 +424,58 @@ const GuestList = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-gray-500">
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, filteredGuests.length)} of{" "}
+            {filteredGuests.length} entries
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Detail Dialog */}
+      <Dialog open={!!viewGuestId} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{editMode ? "Edit Guest" : "Guest Details"}</DialogTitle>
+          </DialogHeader>
+          {viewGuestId && (
+            <GuestDetailView
+              guestId={viewGuestId}
+              editMode={editMode}
+              onEdit={handleEditClick}
+              onUpdate={handleGuestUpdate}
+              onClose={handleDialogClose}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <PDFPreviewDialog
         open={pdfPreviewOpen}

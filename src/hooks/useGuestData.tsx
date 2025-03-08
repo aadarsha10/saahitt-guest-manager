@@ -41,6 +41,30 @@ export function useGuestData() {
     staleTime: 1000, // Set a shorter stale time to refresh data more frequently
   });
 
+  const getGuestById = async (id: string): Promise<Guest> => {
+    const { data, error } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch guest details",
+      });
+      throw error;
+    }
+
+    return {
+      ...data,
+      priority: data.priority as Guest['priority'],
+      status: data.status as Guest['status'],
+      custom_values: data.custom_values || {},
+    };
+  };
+
   const addGuests = useMutation({
     mutationFn: async (newGuests: NewGuest[]) => {
       const { error } = await supabase
@@ -76,8 +100,9 @@ export function useGuestData() {
       if (error) throw error;
       return guest;
     },
-    onSuccess: () => {
+    onSuccess: (updatedGuest) => {
       queryClient.invalidateQueries({ queryKey: ['guests'] });
+      queryClient.invalidateQueries({ queryKey: ['guest', updatedGuest.id] });
       toast({
         title: "Success",
         description: "Guest updated successfully",
@@ -102,8 +127,9 @@ export function useGuestData() {
       if (error) throw error;
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['guests'] });
+      queryClient.invalidateQueries({ queryKey: ['guest', id] });
       toast({
         title: "Success",
         description: "Guest deleted successfully",
@@ -124,6 +150,7 @@ export function useGuestData() {
     isFetching,
     error,
     refetch,
+    getGuestById,
     addGuests,
     updateGuest,
     deleteGuest,
