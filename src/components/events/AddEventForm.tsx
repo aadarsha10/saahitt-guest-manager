@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { NewEvent } from "@/types/event";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEventData } from "@/hooks/useEventData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddEventFormProps {
   onSuccess: () => void;
@@ -19,7 +19,7 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { addEvent } = useEventData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,15 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "You must be logged in to add events",
+        });
+        setLoading(false);
+        return;
+      }
 
       const newEvent: NewEvent = {
         name,
@@ -36,19 +44,7 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
         user_id: user.id,
       };
 
-      const { error } = await supabase
-        .from("events")
-        .insert(newEvent);
-
-      if (error) throw error;
-
-      // Invalidate events query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-
-      toast({
-        title: "Success",
-        description: "Event added successfully",
-      });
+      await addEvent.mutateAsync(newEvent);
       
       // Reset form
       setName("");
@@ -58,10 +54,11 @@ const AddEventForm = ({ onSuccess }: AddEventFormProps) => {
       // Close dialog and refresh events list
       onSuccess();
     } catch (error: any) {
+      console.error("Add event error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add event",
+        description: "Failed to add event: " + (error.message || "Unknown error"),
       });
     } finally {
       setLoading(false);

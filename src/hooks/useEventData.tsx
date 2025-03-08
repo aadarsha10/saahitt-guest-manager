@@ -16,16 +16,23 @@ export function useEventData() {
   } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+      
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .order('date', { ascending: true });
 
       if (error) {
+        console.error("Error fetching events:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch events",
+          description: "Failed to fetch events: " + error.message,
         });
         throw error;
       }
@@ -35,13 +42,25 @@ export function useEventData() {
   });
 
   const addEvent = useMutation({
-    mutationFn: async (newEvent: Omit<Event, 'id'>) => {
+    mutationFn: async (newEvent: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => {
+      // Verify user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+      
       const { data, error } = await supabase
         .from('events')
-        .insert(newEvent)
+        .insert({
+          ...newEvent,
+          user_id: user.id
+        })
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding event:", error);
+        throw error;
+      }
       return data?.[0];
     },
     onSuccess: () => {
@@ -51,11 +70,12 @@ export function useEventData() {
         description: "Event added successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Add event mutation error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add event",
+        description: "Failed to add event: " + (error.message || "Unknown error"),
       });
     },
   });
@@ -71,7 +91,10 @@ export function useEventData() {
         })
         .eq('id', event.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating event:", error);
+        throw error;
+      }
       return event;
     },
     onSuccess: () => {
@@ -81,11 +104,12 @@ export function useEventData() {
         description: "Event updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Update event mutation error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update event",
+        description: "Failed to update event: " + (error.message || "Unknown error"),
       });
     },
   });
@@ -97,7 +121,10 @@ export function useEventData() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error deleting event:", error);
+        throw error;
+      }
       return id;
     },
     onSuccess: () => {
@@ -107,11 +134,12 @@ export function useEventData() {
         description: "Event deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Delete event mutation error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete event",
+        description: "Failed to delete event: " + (error.message || "Unknown error"),
       });
     },
   });
