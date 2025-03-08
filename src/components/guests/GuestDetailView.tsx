@@ -132,7 +132,7 @@ const GuestDetailView = ({
       return {
         ...prev,
         custom_values: {
-          ...prev.custom_values,
+          ...(prev.custom_values || {}),
           [field]: value,
         },
       };
