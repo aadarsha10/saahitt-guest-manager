@@ -60,7 +60,7 @@ export const Hero = () => {
             <Mockup type="responsive">
               <div className="bg-white p-4 rounded-b-lg">
                 <img 
-                  src="/placeholder.svg" 
+                  src="/lovable-uploads/003a721c-6b55-4a4a-abe7-8f45b5e7e085.png" 
                   alt="Guest Management Dashboard" 
                   className="w-full rounded-lg shadow-md"
                 />
