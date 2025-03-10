@@ -11,17 +11,18 @@ import { useEventData } from "@/hooks/useEventData";
 import { useEventGuests } from "@/hooks/useEventGuests";
 import { BarChart, XAxis, YAxis, Bar, Cell, ResponsiveContainer, Tooltip, PieChart, Pie } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Users, Calendar as CalendarIcon, ArrowRight, Mail, Check, Award, Clock, CalendarCheck, CalendarX, ChevronRight, Crown, BadgeCheck, Star } from "lucide-react";
 import { Event } from "@/types/event";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface DashboardHomeProps {
   profile: any;
+  onTabChange?: (tab: string) => void;
 }
 
-const DashboardHome = ({ profile }: DashboardHomeProps) => {
+const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { guests, isLoading: loadingGuests } = useGuestData();
   const { events, isLoading: loadingEvents } = useEventData();
   const { eventGuests } = useEventGuests();
@@ -29,6 +30,9 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [dateWithEvents, setDatesWithEvents] = useState<Date[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDateEvents, setSelectedDateEvents] = useState<Event[]>([]);
+  const [dateDialogOpen, setDateDialogOpen] = useState(false);
   
   // Get time of day greeting
   const getGreeting = () => {
@@ -155,21 +159,56 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
     const eventsOnDay = eventsByDate[dateStr];
     
     if (eventsOnDay?.length) {
-      // If there's only one event, navigate directly
+      // If there's only one event, navigate to events tab
       if (eventsOnDay.length === 1) {
-        navigate(`/events/${eventsOnDay[0].id}`);
+        if (onTabChange) {
+          onTabChange("events");
+          // Highlight the specific event via a toast notification
+          setTimeout(() => {
+            toast({
+              title: "Event Selected",
+              description: `You selected "${eventsOnDay[0].name}" on ${format(day, 'MMMM d, yyyy')}`,
+            });
+          }, 100);
+        }
       } else {
-        // If multiple events, show a toast with a link
-        toast({
-          title: `${eventsOnDay.length} events on ${format(day, 'MMMM d, yyyy')}`,
-          description: "View your events for details",
-          action: (
-            <Button variant="outline" size="sm" onClick={() => navigate('/events')}>
-              View Events
-            </Button>
-          ),
-        });
+        // If multiple events, show dialog with list
+        setSelectedDate(day);
+        setSelectedDateEvents(eventsOnDay);
+        setDateDialogOpen(true);
       }
+    } else {
+      // No events - inform user
+      toast({
+        title: "No Events",
+        description: `No events scheduled for ${format(day, 'MMMM d, yyyy')}`,
+        variant: "default",
+      });
+    }
+  };
+
+  const handleGuestListClick = () => {
+    if (onTabChange) {
+      onTabChange("guests");
+    }
+  };
+
+  const handleEventsClick = () => {
+    if (onTabChange) {
+      onTabChange("events");
+    }
+  };
+
+  const handleInvitationsClick = () => {
+    if (onTabChange) {
+      onTabChange("guests");
+      // Show a hint about invitation management
+      setTimeout(() => {
+        toast({
+          title: "Invitation Management",
+          description: "Manage invitations through the Guest List page",
+        });
+      }, 100);
     }
   };
 
@@ -270,11 +309,14 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
             </div>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" size="sm" className="text-blue-600" asChild>
-              <Link to="/guests">
-                View Guest List
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-blue-600" 
+              onClick={handleGuestListClick}
+            >
+              View Guest List
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </CardFooter>
         </Card>
@@ -306,11 +348,14 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
             </div>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" size="sm" className="text-purple-600" asChild>
-              <Link to="/events">
-                Manage Events
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-purple-600" 
+              onClick={handleEventsClick}
+            >
+              Manage Events
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </CardFooter>
         </Card>
@@ -342,11 +387,14 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
             </div>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" size="sm" className="text-amber-600" asChild>
-              <Link to="/guests">
-                Manage Invitations
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-amber-600" 
+              onClick={handleInvitationsClick}
+            >
+              Manage Invitations
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </CardFooter>
         </Card>
@@ -366,10 +414,10 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
             <div className="calendar-container relative">
               <Calendar
                 mode="single"
-                selected={new Date()}
+                selected={selectedDate || new Date()}
                 month={selectedMonth}
                 onMonthChange={setSelectedMonth}
-                className="rounded-md border p-2 mx-auto"
+                className="rounded-md border p-2 mx-auto pointer-events-auto"
                 modifiers={{
                   eventDay: dateWithEvents,
                 }}
@@ -560,6 +608,58 @@ const DashboardHome = ({ profile }: DashboardHomeProps) => {
           </CardContent>
         </Card>
       )}
+      
+      {/* Events on Selected Date Dialog */}
+      <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate && `Events on ${format(selectedDate, 'MMMM d, yyyy')}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedDateEvents.length > 0 ? (
+              <div className="space-y-3">
+                {selectedDateEvents.map((event) => (
+                  <Card key={event.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium">{event.name}</h3>
+                          {event.description && (
+                            <p className="text-sm text-gray-500 line-clamp-1">{event.description}</p>
+                          )}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setDateDialogOpen(false);
+                            if (onTabChange) {
+                              onTabChange("events");
+                              // Highlight the specific event
+                              setTimeout(() => {
+                                toast({
+                                  title: "Event Selected",
+                                  description: `You selected "${event.name}"`,
+                                });
+                              }, 100);
+                            }
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500">No events found for this date.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

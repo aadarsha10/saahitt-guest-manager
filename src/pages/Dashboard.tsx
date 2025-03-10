@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -26,6 +25,7 @@ import DashboardHome from "@/components/dashboard/DashboardHome";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [guestFormOpen, setGuestFormOpen] = useState(false);
@@ -33,14 +33,40 @@ const Dashboard = () => {
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
 
+  // Get tab from URL hash if present
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    const validTabs = ["home", "guests", "categories", "events", "settings"];
+    if (hash && validTabs.includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, [location]);
+
+  // Update URL hash when tab changes
+  useEffect(() => {
+    if (activeTab) {
+      window.history.replaceState(null, "", `#${activeTab}`);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     checkUser();
     getProfile();
   }, []);
 
   const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+      }
+    } catch (error) {
+      console.error("Auth check error:", error);
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Please sign in again",
+      });
       navigate("/auth");
     }
   };
@@ -59,6 +85,7 @@ const Dashboard = () => {
       if (error) throw error;
       setProfile(data);
     } catch (error: any) {
+      console.error("Profile fetch error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -79,6 +106,10 @@ const Dashboard = () => {
         description: error.message,
       });
     }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
   return (
@@ -104,7 +135,7 @@ const Dashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="bg-white p-1 space-x-2">
             <TabsTrigger value="home" className="space-x-2">
               <BarChart4 className="h-4 w-4" />
@@ -129,7 +160,7 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="home">
-            <DashboardHome profile={profile} />
+            <DashboardHome profile={profile} onTabChange={handleTabChange} />
           </TabsContent>
 
           <TabsContent value="guests">
