@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 interface DashboardHomeProps {
   profile: any;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (tab: string, eventId?: string) => void;
 }
 
 const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
@@ -151,7 +151,7 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
     return acc;
   }, {});
 
-  // Handle day click on calendar
+  // Handle day click on calendar with improved event navigation
   const handleDayClick = (day: Date | undefined) => {
     if (!day) return;
     
@@ -159,18 +159,14 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
     const eventsOnDay = eventsByDate[dateStr];
     
     if (eventsOnDay?.length) {
-      // If there's only one event, navigate to events tab
-      if (eventsOnDay.length === 1) {
-        if (onTabChange) {
-          onTabChange("events");
-          // Highlight the specific event via a toast notification
-          setTimeout(() => {
-            toast({
-              title: "Event Selected",
-              description: `You selected "${eventsOnDay[0].name}" on ${format(day, 'MMMM d, yyyy')}`,
-            });
-          }, 100);
-        }
+      // If there's only one event, navigate directly to that event in the events tab
+      if (eventsOnDay.length === 1 && onTabChange) {
+        onTabChange("events", eventsOnDay[0].id);
+        // Highlight the specific event via a toast notification
+        toast({
+          title: "Event Selected",
+          description: `Navigating to "${eventsOnDay[0].name}" on ${format(day, 'MMMM d, yyyy')}`,
+        });
       } else {
         // If multiple events, show dialog with list
         setSelectedDate(day);
@@ -187,15 +183,22 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
     }
   };
 
+  // Fix navigation handlers to use onTabChange correctly
   const handleGuestListClick = () => {
     if (onTabChange) {
       onTabChange("guests");
+    } else {
+      // Fallback for direct navigation if props method fails
+      window.location.hash = "guests";
     }
   };
 
   const handleEventsClick = () => {
     if (onTabChange) {
       onTabChange("events");
+    } else {
+      // Fallback for direct navigation if props method fails
+      window.location.hash = "events";
     }
   };
 
@@ -203,6 +206,13 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
     if (onTabChange) {
       onTabChange("guests");
       // Show a hint about invitation management
+      toast({
+        title: "Invitation Management",
+        description: "Manage invitations through the Guest List page",
+      });
+    } else {
+      // Fallback for direct navigation if props method fails
+      window.location.hash = "guests";
       setTimeout(() => {
         toast({
           title: "Invitation Management",
@@ -636,8 +646,13 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
                           onClick={() => {
                             setDateDialogOpen(false);
                             if (onTabChange) {
-                              onTabChange("events");
+                              onTabChange("events", event.id);
                               // Highlight the specific event
+                            } else {
+                              // Direct navigation fallback
+                              window.location.hash = "events";
+                              // Store the selected event ID in localStorage to be used by the events page
+                              localStorage.setItem('selectedEventId', event.id);
                               setTimeout(() => {
                                 toast({
                                   title: "Event Selected",

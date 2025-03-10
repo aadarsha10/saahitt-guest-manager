@@ -32,13 +32,21 @@ const Dashboard = () => {
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
-
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  
   // Get tab from URL hash if present
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     const validTabs = ["home", "guests", "categories", "events", "settings"];
     if (hash && validTabs.includes(hash)) {
       setActiveTab(hash);
+    }
+    
+    // Check if there was a selected event ID stored in localStorage
+    const storedEventId = localStorage.getItem('selectedEventId');
+    if (storedEventId) {
+      setSelectedEventId(storedEventId);
+      localStorage.removeItem('selectedEventId');
     }
   }, [location]);
 
@@ -108,8 +116,23 @@ const Dashboard = () => {
     }
   };
 
-  const handleTabChange = (value: string) => {
+  // Enhanced tab change handler to handle event selection
+  const handleTabChange = (value: string, eventId?: string) => {
     setActiveTab(value);
+    if (eventId) {
+      setSelectedEventId(eventId);
+      setTimeout(() => {
+        // Scroll to and highlight the event if we have its ID
+        const eventElement = document.getElementById(`event-${eventId}`);
+        if (eventElement) {
+          eventElement.scrollIntoView({ behavior: 'smooth' });
+          eventElement.classList.add('highlight-event');
+          setTimeout(() => {
+            eventElement.classList.remove('highlight-event');
+          }, 2000);
+        }
+      }, 100);
+    }
   };
 
   return (
@@ -226,7 +249,7 @@ const Dashboard = () => {
                   </DialogContent>
                 </Dialog>
               </div>
-              <EventList />
+              <EventList selectedEventId={selectedEventId} />
             </div>
           </TabsContent>
 
@@ -243,6 +266,22 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Add highlight event styling */}
+      <style jsx="true">{`
+        .highlight-event {
+          animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+          0%, 100% {
+            background-color: transparent;
+          }
+          50% {
+            background-color: rgba(255, 111, 0, 0.2);
+          }
+        }
+      `}</style>
     </div>
   );
 };
