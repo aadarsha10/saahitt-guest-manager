@@ -52,7 +52,8 @@ export const PlanManagement = () => {
   }, [toast]);
   
   const handleUpgrade = () => {
-    navigate("/pricing");
+    // Navigate to the dedicated plans page within the dashboard
+    navigate("/dashboard#plans");
   };
   
   const handleCancelPlan = async () => {

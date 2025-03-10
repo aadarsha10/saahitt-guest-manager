@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Users, CalendarDays, Settings, ListFilter, Mail, Calendar, ChevronRight, CircleCheck, BarChart4, Trophy, Clock, BookCheck, BookX } from "lucide-react";
+import { PlusCircle, Users, CalendarDays, Settings, ListFilter, BarChart4, CreditCard } from "lucide-react";
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
@@ -18,12 +18,13 @@ import EventList from "@/components/events/EventList";
 import AccountSettings from "@/components/settings/AccountSettings";
 import { PlanManagement } from "@/components/settings/PlanManagement";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useGuestData } from "@/hooks/useGuestData";
-import { useEventData } from "@/hooks/useEventData";
-import { useEventGuests } from "@/hooks/useEventGuests";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import DashboardHome from "@/components/dashboard/DashboardHome";
+import PlanManagementView from "@/components/dashboard/PlanManagementView";
+
+// Define EventListProps interface
+interface EventListProps {
+  selectedEventId: string | null;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -35,13 +36,24 @@ const Dashboard = () => {
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [settingsSubView, setSettingsSubView] = useState("account");
   
   // Get tab from URL hash if present
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    const validTabs = ["home", "guests", "categories", "events", "settings"];
+    const validTabs = ["home", "guests", "categories", "events", "settings", "plans"];
+    
     if (hash && validTabs.includes(hash)) {
       setActiveTab(hash);
+      
+      // Handle settings sub-views
+      if (hash === "settings" && location.search) {
+        const params = new URLSearchParams(location.search);
+        const view = params.get('view');
+        if (view && ["account", "plans", "fields"].includes(view)) {
+          setSettingsSubView(view);
+        }
+      }
     }
     
     // Check if there was a selected event ID stored in localStorage
@@ -55,9 +67,13 @@ const Dashboard = () => {
   // Update URL hash when tab changes
   useEffect(() => {
     if (activeTab) {
-      window.history.replaceState(null, "", `#${activeTab}`);
+      if (activeTab === "settings") {
+        window.history.replaceState(null, "", `#${activeTab}?view=${settingsSubView}`);
+      } else {
+        window.history.replaceState(null, "", `#${activeTab}`);
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, settingsSubView]);
 
   useEffect(() => {
     checkUser();
@@ -121,6 +137,12 @@ const Dashboard = () => {
   // Enhanced tab change handler to handle event selection
   const handleTabChange = (value: string, eventId?: string) => {
     setActiveTab(value);
+    
+    // Reset settings sub-view if changing away from settings
+    if (value !== "settings") {
+      setSettingsSubView("account");
+    }
+    
     if (eventId) {
       setSelectedEventId(eventId);
       setTimeout(() => {
@@ -135,6 +157,12 @@ const Dashboard = () => {
         }
       }, 100);
     }
+  };
+
+  // Handle settings sub-view changes
+  const handleSettingsSubViewChange = (view: string) => {
+    setSettingsSubView(view);
+    window.history.replaceState(null, "", `#settings?view=${view}`);
   };
 
   return (
@@ -177,6 +205,10 @@ const Dashboard = () => {
             <TabsTrigger value="events" className="space-x-2">
               <CalendarDays className="h-4 w-4" />
               <span>Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="plans" className="space-x-2">
+              <CreditCard className="h-4 w-4" />
+              <span>Plans</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="space-x-2">
               <Settings className="h-4 w-4" />
@@ -254,15 +286,56 @@ const Dashboard = () => {
               <EventList selectedEventId={selectedEventId} />
             </div>
           </TabsContent>
+          
+          {/* New dedicated Plans tab */}
+          <TabsContent value="plans">
+            <div className="grid gap-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Plans & Pricing</h2>
+              </div>
+              <PlanManagementView profile={profile} onRefreshProfile={getProfile} />
+            </div>
+          </TabsContent>
 
           <TabsContent value="settings">
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-6 p-1">
                 <h2 className="text-2xl font-bold">Settings</h2>
+                
+                {/* Settings Sub-Navigation */}
+                <div className="flex border-b pb-2 mb-6">
+                  <button 
+                    className={`px-4 py-2 ${settingsSubView === 'account' ? 'border-b-2 border-[#FF6F00] text-[#FF6F00]' : 'text-gray-500'}`}
+                    onClick={() => handleSettingsSubViewChange('account')}
+                  >
+                    Account
+                  </button>
+                  <button 
+                    className={`px-4 py-2 ${settingsSubView === 'plans' ? 'border-b-2 border-[#FF6F00] text-[#FF6F00]' : 'text-gray-500'}`}
+                    onClick={() => handleSettingsSubViewChange('plans')}
+                  >
+                    Plan Management
+                  </button>
+                  <button 
+                    className={`px-4 py-2 ${settingsSubView === 'fields' ? 'border-b-2 border-[#FF6F00] text-[#FF6F00]' : 'text-gray-500'}`}
+                    onClick={() => handleSettingsSubViewChange('fields')}
+                  >
+                    Custom Fields
+                  </button>
+                </div>
+                
                 <div className="grid gap-6">
-                  <PlanManagement />
-                  <AccountSettings />
-                  <CustomFieldsManager />
+                  {settingsSubView === 'account' && (
+                    <AccountSettings />
+                  )}
+                  
+                  {settingsSubView === 'plans' && (
+                    <PlanManagement />
+                  )}
+                  
+                  {settingsSubView === 'fields' && (
+                    <CustomFieldsManager />
+                  )}
                 </div>
               </div>
             </ScrollArea>

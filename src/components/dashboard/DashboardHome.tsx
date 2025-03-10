@@ -254,6 +254,16 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
   const { guestStatusData, monthlyEvents, COLORS } = prepareChartData();
   const planDetails = getPlanDetails();
   
+  // Add this new function to handle plans button click
+  const handlePlansClick = () => {
+    if (onTabChange) {
+      onTabChange("plans");
+    } else {
+      // Fallback for direct navigation if props method fails
+      window.location.hash = "plans";
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       {/* Welcome Banner */}
@@ -603,15 +613,15 @@ const DashboardHome = ({ profile, onTabChange }: DashboardHomeProps) => {
               <div className="flex gap-3">
                 <Button 
                   className="bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-200"
-                  asChild
+                  onClick={handlePlansClick}
                 >
-                  <Link to="/pricing">View Plans</Link>
+                  View Plans
                 </Button>
                 <Button 
                   className="bg-indigo-600 hover:bg-indigo-700"
-                  asChild
+                  onClick={handlePlansClick}
                 >
-                  <Link to="/pricing">Upgrade Now</Link>
+                  Upgrade Now
                 </Button>
               </div>
             </div>
