@@ -1,44 +1,8 @@
+
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
-const plans = [
-  {
-    name: "Free",
-    price: "0",
-    features: [
-      "Up to 100 guests",
-      "Basic sorting & ranking",
-      "PDF exports",
-      "Print-ready lists",
-    ],
-    color: "bg-white",
-  },
-  {
-    name: "Pro",
-    price: "1,500",
-    features: [
-      "Up to 500 guests",
-      "Bulk import from CSV/Excel",
-      "Custom categories & tagging",
-      "Advanced filters",
-      "Priority groups",
-    ],
-    color: "bg-[#FAF3E0]",
-  },
-  {
-    name: "Ultimate",
-    price: "5,000",
-    features: [
-      "Up to 2,000 guests",
-      "Smart ranking suggestions",
-      "Event roles assignment",
-      "Customizable export templates",
-      "Analytics dashboard",
-    ],
-    color: "bg-[#FAF3E0]",
-  },
-];
+import { PLANS } from "@/lib/plans"; 
 
 export const Pricing = () => {
   return (
@@ -48,10 +12,12 @@ export const Pricing = () => {
         <p className="text-xl text-[#2C2C2C] text-center mb-12">One-time payment. No subscriptions.</p>
         
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => (
+          {PLANS.map((plan) => (
             <div
-              key={plan.name}
-              className={`${plan.color} rounded-lg shadow-sm hover:shadow-md transition-shadow p-8 animate-fade-in`}
+              key={plan.id}
+              className={`${plan.color} rounded-lg shadow-sm hover:shadow-md transition-shadow p-8 animate-fade-in ${
+                plan.highlighted ? "ring-2 ring-[#FF6F00]" : ""
+              }`}
             >
               <h3 className="text-2xl font-bold mb-2 text-[#2C2C2C]">{plan.name}</h3>
               <div className="mb-6">
@@ -70,7 +36,7 @@ export const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/signup">
+              <Link to={`/pricing?selected=${plan.id}`}>
                 <Button className="w-full bg-[#FF6F00] hover:bg-[#FF6F00]/90 text-white">
                   Get Started
                 </Button>

@@ -16,6 +16,7 @@ import CustomFieldsManager from "@/components/settings/CustomFieldsManager";
 import AddEventForm from "@/components/events/AddEventForm";
 import EventList from "@/components/events/EventList";
 import AccountSettings from "@/components/settings/AccountSettings";
+import { PlanManagement } from "@/components/settings/PlanManagement";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGuestData } from "@/hooks/useGuestData";
 import { useEventData } from "@/hooks/useEventData";
@@ -259,6 +260,7 @@ const Dashboard = () => {
               <div className="space-y-6 p-1">
                 <h2 className="text-2xl font-bold">Settings</h2>
                 <div className="grid gap-6">
+                  <PlanManagement />
                   <AccountSettings />
                   <CustomFieldsManager />
                 </div>
