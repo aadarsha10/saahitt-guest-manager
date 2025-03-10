@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -28,6 +27,7 @@ const Checkout = () => {
     phone: "",
   });
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState("credit-card");
+  const [authenticated, setAuthenticated] = useState(false);
   
   const { processPayment } = usePaymentProcessor();
   
@@ -57,9 +57,12 @@ const Checkout = () => {
           description: "Please sign in to upgrade your plan",
           variant: "destructive",
         });
-        navigate("/auth?tab=signin&redirect=/pricing");
+        // Save the current URL to redirect back after login
+        navigate(`/auth?tab=signin&redirect=${encodeURIComponent(location.pathname + location.search)}`);
         return;
       }
+      
+      setAuthenticated(true);
       
       // Get user details
       const { data: profile, error } = await supabase
@@ -90,13 +93,18 @@ const Checkout = () => {
     };
     
     checkAuth();
-  }, [location.search, navigate, toast]);
+  }, [location.search, navigate, toast, location.pathname]);
   
   const handleBackClick = () => {
     if (step > 1) {
       setStep(step - 1);
     } else {
-      navigate("/pricing");
+      // Return to the pricing page or dashboard plans section based on authentication state
+      if (authenticated) {
+        navigate("/dashboard#plans");
+      } else {
+        navigate("/pricing");
+      }
     }
   };
   

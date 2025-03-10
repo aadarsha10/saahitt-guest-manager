@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,24 +20,32 @@ const Auth = () => {
     lastName: "",
   });
 
+  // Get redirect path from URL if present
+  const getRedirectPath = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get("redirect");
+    return redirect ? decodeURIComponent(redirect) : "/dashboard";
+  };
+
   // Check for existing session on component mount and redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        navigate(getRedirectPath());
       }
     };
     
     checkSession();
-  }, [navigate]);
+  }, [navigate, location.search]);
 
   // Set up auth state change listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "SIGNED_IN" && session) {
-          navigate("/dashboard");
+          // Navigate to the redirect path if provided, otherwise to dashboard
+          navigate(getRedirectPath());
         }
       }
     );
@@ -44,7 +53,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.search]);
 
   // Parse URL params to determine initial tab
   useEffect(() => {
