@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,7 +269,8 @@ const Dashboard = () => {
       </div>
       
       {/* Add highlight event styling */}
-      <style jsx="true">{`
+      <style>
+        {`
         .highlight-event {
           animation: highlight 2s ease-in-out;
         }
@@ -281,7 +283,8 @@ const Dashboard = () => {
             background-color: rgba(255, 111, 0, 0.2);
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

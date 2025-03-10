@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Event } from "@/types/event";
 import {
   Table,
@@ -19,7 +19,11 @@ import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useEventData } from "@/hooks/useEventData";
 import { useEventGuests } from "@/hooks/useEventGuests";
 
-const EventList = () => {
+interface EventListProps {
+  selectedEventId?: string | null;
+}
+
+const EventList = ({ selectedEventId }: EventListProps) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -28,11 +32,30 @@ const EventList = () => {
   const { events, isLoading, updateEvent, deleteEvent } = useEventData();
   const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle, handleBulkGuestToggle, updateInviteStatus } = useEventGuests();
 
+  // Select event if selectedEventId is provided
+  useEffect(() => {
+    if (selectedEventId && events.length > 0) {
+      const event = events.find(e => e.id === selectedEventId);
+      if (event) {
+        setSelectedEvent(event);
+        // Scroll to the event row when component is mounted
+        setTimeout(() => {
+          const element = document.getElementById(`event-${event.id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+            element.classList.add('highlight-event');
+            setTimeout(() => element.classList.remove('highlight-event'), 2000);
+          }
+        }, 100);
+      }
+    }
+  }, [selectedEventId, events]);
+
   // Fetch guests and event guests on component mount
-  useState(() => {
+  useEffect(() => {
     fetchGuests();
     fetchEventGuests();
-  });
+  }, []);
 
   const handleDownloadClick = (event: Event) => {
     setPreviewEvent(event);
@@ -57,7 +80,7 @@ const EventList = () => {
           </TableHeader>
           <TableBody>
             {events.map((event) => (
-              <TableRow key={event.id}>
+              <TableRow key={event.id} id={`event-${event.id}`}>
                 <TableCell>
                   {editingEvent?.id === event.id ? (
                     <Input
