@@ -56,7 +56,7 @@ const GuestCategoriesArticle = () => {
         <li>Click the <strong>Add Category</strong> button</li>
         <li>Enter a name for your new category</li>
         <li>Choose a color (optional) for visual identification</li>
-        <li>Add a description (optional) to clarify the category's purpose</li>
+        <li>Add a description (optional) to clarify the category&apos;s purpose</li>
         <li>Click <strong>Save</strong> to create the category</li>
       </ol>
 
@@ -90,7 +90,7 @@ const GuestCategoriesArticle = () => {
       <h3>For existing guests:</h3>
       <ol>
         <li>Go to the <strong>Guests</strong> tab</li>
-        <li>Click on the guest's name to open their details</li>
+        <li>Click on the guest&apos;s name to open their details</li>
         <li>Click <strong>Edit</strong></li>
         <li>Update the category field</li>
         <li>Click <strong>Save</strong> to update the guest</li>
@@ -119,7 +119,7 @@ const GuestCategoriesArticle = () => {
 
       <h2>Filtering Guests by Category</h2>
       <p>
-        Once you've assigned categories to your guests, you can easily filter your guest list:
+        Once you&apos;ve assigned categories to your guests, you can easily filter your guest list:
       </p>
 
       <ol>
@@ -138,8 +138,8 @@ const GuestCategoriesArticle = () => {
           <h3 className="text-lg font-medium mb-2">Filtering in Action</h3>
           <p>
             Filters can be combined with other criteria such as RSVP status and priority.
-            For example, you could filter to show all "Family" category guests who have 
-            "Confirmed" their attendance.
+            For example, you could filter to show all &quot;Family&quot; category guests who have 
+            &quot;Confirmed&quot; their attendance.
           </p>
         </div>
       </div>
@@ -149,7 +149,7 @@ const GuestCategoriesArticle = () => {
 
       <h3>To edit a category:</h3>
       <ol>
-        <li>Go to <strong>Settings > Categories</strong></li>
+        <li>Go to <strong>Settings {`>`} Categories</strong></li>
         <li>Find the category you want to edit</li>
         <li>Click the <strong>Edit</strong> icon</li>
         <li>Make your changes</li>
@@ -158,7 +158,7 @@ const GuestCategoriesArticle = () => {
 
       <h3>To delete a category:</h3>
       <ol>
-        <li>Go to <strong>Settings > Categories</strong></li>
+        <li>Go to <strong>Settings {`>`} Categories</strong></li>
         <li>Find the category you want to delete</li>
         <li>Click the <strong>Delete</strong> icon</li>
         <li>Confirm the deletion when prompted</li>

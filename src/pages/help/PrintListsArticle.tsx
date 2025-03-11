@@ -48,7 +48,7 @@ const PrintListsArticle = () => {
 
       <ol>
         <li>Go to the <strong>Guests</strong> tab in your dashboard</li>
-        <li>Apply any filters you want (e.g., only "Confirmed" guests or a specific category)</li>
+        <li>Apply any filters you want (e.g., only &quot;Confirmed&quot; guests or a specific category)</li>
         <li>Click the <strong>Export</strong> button</li>
         <li>Select <strong>PDF</strong> as the format</li>
         <li>Choose <strong>Basic List</strong> as the template</li>
@@ -121,12 +121,12 @@ const PrintListsArticle = () => {
       </p>
 
       <ol>
-        <li>Go to <strong>Settings > Branding</strong></li>
+        <li>Go to <strong>Settings {`>`} Branding</strong></li>
         <li>Upload your logo</li>
         <li>Select brand colors</li>
         <li>Add a custom header or footer</li>
         <li>Save your branding settings</li>
-        <li>When exporting, check the "Include branding" option</li>
+        <li>When exporting, check the &quot;Include branding&quot; option</li>
       </ol>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center my-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
@@ -151,7 +151,7 @@ const PrintListsArticle = () => {
       </p>
       <ol>
         <li>Filter your guest list to show only confirmed guests</li>
-        <li>Export as PDF using the "Check-in Sheet" template</li>
+        <li>Export as PDF using the &quot;Check-in Sheet&quot; template</li>
         <li>Include columns for Name, Category, and Plus-ones</li>
         <li>Sort alphabetically by last name</li>
       </ol>
@@ -161,7 +161,7 @@ const PrintListsArticle = () => {
         When sharing information with vendors:
       </p>
       <ol>
-        <li>Export as PDF using the "Basic List" template</li>
+        <li>Export as PDF using the &quot;Basic List&quot; template</li>
         <li>Include only necessary details (avoid sharing personal contact information)</li>
         <li>Focus on headcount, dietary restrictions, and special accommodations</li>
       </ol>
@@ -171,7 +171,7 @@ const PrintListsArticle = () => {
         When creating a comprehensive reference for yourself:
       </p>
       <ol>
-        <li>Export as PDF using the "Detailed Directory" template</li>
+        <li>Export as PDF using the &quot;Detailed Directory&quot; template</li>
         <li>Include all guest details</li>
         <li>Consider organizing by category or table assignment</li>
       </ol>
@@ -211,9 +211,9 @@ const PrintListsArticle = () => {
       </p>
 
       <ul>
-        <li><strong>Paper Size:</strong> Our PDFs are optimized for standard letter size (8.5" x 11") or A4 paper</li>
+        <li><strong>Paper Size:</strong> Our PDFs are optimized for standard letter size (8.5&quot; x 11&quot;) or A4 paper</li>
         <li><strong>Orientation:</strong> Choose landscape orientation for lists with many columns</li>
-        <li><strong>Print Quality:</strong> Select "High Quality" in your printer settings for best results</li>
+        <li><strong>Print Quality:</strong> Select &quot;High Quality&quot; in your printer settings for best results</li>
         <li><strong>Test Print:</strong> Always print a test page first to check alignment and readability</li>
         <li><strong>Consider Color Coding:</strong> Ultimate plan users can include color-coded categories</li>
       </ul>
