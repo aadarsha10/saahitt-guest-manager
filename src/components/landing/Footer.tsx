@@ -35,12 +35,9 @@ export const Footer = () => {
                 </button>
               </li>
               <li>
-                <button 
-                  onClick={() => scrollToSection('pricing')} 
-                  className="hover:text-[#FF6F00]"
-                >
+                <Link to="/pricing" className="hover:text-[#FF6F00]">
                   Pricing
-                </button>
+                </Link>
               </li>
               <li>
                 <button 
@@ -65,7 +62,7 @@ export const Footer = () => {
             <ul className="space-y-2">
               <li><Link to="/help" className="hover:text-[#FF6F00]">Help Center</Link></li>
               <li><Link to="/faq" className="hover:text-[#FF6F00]">FAQs</Link></li>
-              <li><a href="mailto:support@saahitt.com" className="hover:text-[#FF6F00]">Email Support</a></li>
+              <li><Link to="/email-support" className="hover:text-[#FF6F00]">Email Support</Link></li>
             </ul>
           </div>
         </div>

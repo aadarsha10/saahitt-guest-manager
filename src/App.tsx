@@ -12,6 +12,12 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import PricingPage from "./pages/Pricing";
 import Checkout from "./pages/Checkout";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Help from "./pages/Help";
+import FAQPage from "./pages/FAQPage";
+import EmailSupport from "./pages/EmailSupport";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -66,6 +72,12 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/email-support" element={<EmailSupport />} />
             <Route 
               path="/checkout" 
               element={
