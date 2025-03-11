@@ -18,6 +18,11 @@ import Privacy from "./pages/Privacy";
 import Help from "./pages/Help";
 import FAQPage from "./pages/FAQPage";
 import EmailSupport from "./pages/EmailSupport";
+import ImportGuestsArticle from "./pages/help/ImportGuestsArticle";
+import GuestCategoriesArticle from "./pages/help/GuestCategoriesArticle";
+import TrackRSVPsArticle from "./pages/help/TrackRSVPsArticle";
+import PrintListsArticle from "./pages/help/PrintListsArticle";
+import UpgradePlanArticle from "./pages/help/UpgradePlanArticle";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -78,6 +83,14 @@ const App = () => {
             <Route path="/help" element={<Help />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/email-support" element={<EmailSupport />} />
+            
+            {/* Help Articles */}
+            <Route path="/help/article/import-guests" element={<ImportGuestsArticle />} />
+            <Route path="/help/article/guest-categories" element={<GuestCategoriesArticle />} />
+            <Route path="/help/article/track-rsvps" element={<TrackRSVPsArticle />} />
+            <Route path="/help/article/print-lists" element={<PrintListsArticle />} />
+            <Route path="/help/article/upgrade-plan" element={<UpgradePlanArticle />} />
+            
             <Route 
               path="/checkout" 
               element={
