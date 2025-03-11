@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,9 +29,15 @@ const Auth = () => {
   // Check for existing session on component mount and redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate(getRedirectPath());
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const redirectPath = getRedirectPath();
+          console.log("User is already logged in, redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
       }
     };
     
@@ -43,9 +48,12 @@ const Auth = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event, session ? "session exists" : "no session");
         if (event === "SIGNED_IN" && session) {
           // Navigate to the redirect path if provided, otherwise to dashboard
-          navigate(getRedirectPath());
+          const redirectPath = getRedirectPath();
+          console.log("User signed in, redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
         }
       }
     );
@@ -125,6 +133,7 @@ const Auth = () => {
       
       // Navigate will happen automatically via the auth state change listener
     } catch (error: any) {
+      console.error("Sign in error:", error);
       toast({
         variant: "destructive",
         title: "Error",

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -37,18 +37,28 @@ const queryClient = new QueryClient({
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
-      setLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const isAuthenticated = !!session;
+        console.log("Auth check result:", isAuthenticated ? "authenticated" : "not authenticated");
+        setAuthenticated(isAuthenticated);
+        setLoading(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setAuthenticated(false);
+        setLoading(false);
+      }
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_, session) => {
+      (event, session) => {
+        console.log("Auth state changed in protected route:", event);
         setAuthenticated(!!session);
         setLoading(false);
       }
@@ -57,13 +67,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [location.pathname]);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF6F00]"></div>
+      </div>
+    );
   }
 
-  return authenticated ? <>{children}</> : <Navigate to={`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`} />;
+  const currentPath = `${location.pathname}${location.search}`;
+  return authenticated ? 
+    <>{children}</> : 
+    <Navigate to={`/auth?redirect=${encodeURIComponent(currentPath)}`} replace />;
 };
 
 const App = () => {
