@@ -80,34 +80,21 @@ export function useGuestData() {
           throw new Error("User not authenticated");
         }
         
-        // Fetch user profile to check plan type
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('plan_type')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          // Continue with default free plan if profile can't be fetched
-        }
-        
-        // Check guest limits for free plan
-        if ((!profile || profile.plan_type === 'free')) {
-          // Get current guest count
-          const { count, error: countError } = await supabase
-            .from('guests')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', session.user.id);
+        // For free plan users, check guest limits
+        // Only check existing guest count without querying profiles
+        const { count, error: countError } = await supabase
+          .from('guests')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id);
             
-          if (countError) throw countError;
+        if (countError) throw countError;
           
-          const currentCount = count || 0;
-          const totalAfterAdd = currentCount + newGuests.length;
+        const currentCount = count || 0;
+        const totalAfterAdd = currentCount + newGuests.length;
           
-          if (totalAfterAdd > 100) {
-            throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
-          }
+        // Apply 100 guest limit regardless of profile availability
+        if (totalAfterAdd > 100) {
+          throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
         }
         
         // Prepare guests with user_id
