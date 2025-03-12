@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Guest, NewGuest } from "@/types/guest";
 import { useToast } from "@/components/ui/use-toast";
+import { usePlanConfigurations } from "./usePlanConfigurations";
 
 export function useGuestData() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getPlanById } = usePlanConfigurations();
 
   const { 
     data: guests = [], 
@@ -80,16 +82,6 @@ export function useGuestData() {
           throw new Error("User not authenticated");
         }
         
-        // Get plan configurations to check limits
-        const { data: planData, error: planError } = await supabase
-          .from('plan_configurations')
-          .select('*')
-          .order('id', { ascending: true });
-          
-        if (planError) {
-          console.error("Error fetching plan configurations:", planError);
-        }
-        
         // Get user's plan type from profiles
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -102,8 +94,8 @@ export function useGuestData() {
           // Default to free plan if profile not found
           const defaultPlanType = 'free';
           
-          // Get default guest limit
-          const defaultPlanConfig = planData?.find(p => p.plan_id === defaultPlanType) || { guest_limit: 100 };
+          // Get plan configuration
+          const defaultPlanConfig = getPlanById(defaultPlanType);
           
           // Get current guest count
           const { count, error: countError } = await supabase
@@ -123,11 +115,7 @@ export function useGuestData() {
         } else {
           // Profile found, get plan configuration for user's plan type
           const planType = profileData.plan_type;
-          const planConfig = planData?.find(p => p.plan_id === planType);
-          
-          if (!planConfig) {
-            throw new Error("Plan configuration not found");
-          }
+          const planConfig = getPlanById(planType);
           
           // Get current guest count
           const { count, error: countError } = await supabase
@@ -235,6 +223,22 @@ export function useGuestData() {
     },
   });
 
+  // Get statistics on guests by category
+  const getGuestStatsByCategory = () => {
+    const categoryStats: Record<string, number> = {};
+    
+    guests.forEach(guest => {
+      const category = guest.category || 'Others';
+      if (categoryStats[category]) {
+        categoryStats[category]++;
+      } else {
+        categoryStats[category] = 1;
+      }
+    });
+    
+    return categoryStats;
+  };
+
   return {
     guests,
     isLoading,
@@ -245,5 +249,6 @@ export function useGuestData() {
     addGuests,
     updateGuest,
     deleteGuest,
+    getGuestStatsByCategory,
   };
 }

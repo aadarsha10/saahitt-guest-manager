@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
+import { Category } from "@/types/category";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ const GuestDetailView = ({
   onClose,
 }: GuestDetailViewProps) => {
   const [guestForm, setGuestForm] = useState<Partial<Guest> | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
 
   // Fetch guest details
@@ -115,6 +117,29 @@ const GuestDetailView = ({
     },
   });
 
+  // Fetch custom categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   // Update form data when guest changes or edit mode changes
   useEffect(() => {
     if (guest) {
@@ -157,6 +182,15 @@ const GuestDetailView = ({
     onUpdate(updatedGuest);
   };
 
+  // Function to get category color based on the category name
+  const getCategoryColor = (category: string) => {
+    if (category in categoryColors) {
+      return categoryColors[category as keyof typeof categoryColors];
+    }
+    // Return a default color for custom categories
+    return "bg-indigo-100 text-indigo-800 border-indigo-200";
+  };
+
   const isLoading = isLoadingGuest || isLoadingFields;
 
   if (isLoading) {
@@ -178,7 +212,7 @@ const GuestDetailView = ({
                 {guest.first_name} {guest.last_name}
               </h3>
               <div className="flex space-x-2 mt-2">
-                <Badge className={categoryColors[guest.category] || categoryColors.Others}>
+                <Badge className={getCategoryColor(guest.category)}>
                   {guest.category}
                 </Badge>
                 <Badge className={priorityColors[guest.priority]}>
@@ -290,6 +324,12 @@ const GuestDetailView = ({
                   <SelectItem value="Family">Family</SelectItem>
                   <SelectItem value="Friends">Friends</SelectItem>
                   <SelectItem value="Work">Work</SelectItem>
+                  {/* Display custom categories */}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                   <SelectItem value="Others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -306,9 +346,9 @@ const GuestDetailView = ({
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="High">High (VIP)</SelectItem>
+                  <SelectItem value="Medium">Medium (Standard)</SelectItem>
+                  <SelectItem value="Low">Low (Optional)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -324,10 +364,10 @@ const GuestDetailView = ({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Maybe">Maybe</SelectItem>
-                  <SelectItem value="Unavailable">Unavailable</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed (Attending)</SelectItem>
+                  <SelectItem value="Maybe">Maybe (Undecided)</SelectItem>
+                  <SelectItem value="Unavailable">Unavailable (Not Attending)</SelectItem>
+                  <SelectItem value="Pending">Pending (No Response)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -337,6 +377,7 @@ const GuestDetailView = ({
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
+              placeholder="Add any special notes, dietary restrictions, etc."
               value={guestForm?.notes || ""}
               onChange={(e) => handleInputChange("notes", e.target.value)}
               rows={3}

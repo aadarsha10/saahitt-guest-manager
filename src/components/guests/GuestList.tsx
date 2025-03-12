@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
+import { Category } from "@/types/category";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -34,6 +35,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  HelpCircle,
 } from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,6 +43,12 @@ import { useGuestData } from "@/hooks/useGuestData";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import GuestDetailView from "./GuestDetailView";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Category colors for visual distinction
 const categoryColors = {
@@ -71,6 +79,7 @@ const GuestList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
   const { guests, isLoading, isFetching, refetch, updateGuest } = useGuestData();
 
@@ -101,6 +110,29 @@ const GuestList = () => {
       );
     },
   });
+
+  // Fetch custom categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleFilterChange = (field: string, value: string) => {
     if (value === "all") {
@@ -179,6 +211,32 @@ const GuestList = () => {
     });
   };
 
+  // Function to get category color based on the category name
+  const getCategoryColor = (category: string) => {
+    if (category in categoryColors) {
+      return categoryColors[category as keyof typeof categoryColors];
+    }
+    // Return a default color for custom categories
+    return "bg-indigo-100 text-indigo-800 border-indigo-200";
+  };
+
+  // Helper component for filter label with tooltip
+  const FilterLabel = ({ label, tooltip }: { label: string, tooltip: string }) => (
+    <div className="flex items-center space-x-1">
+      <span>{label}</span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+
   const loading = isLoading || isLoadingFields;
 
   return (
@@ -186,7 +244,12 @@ const GuestList = () => {
       <div className="flex justify-between items-center">
         <div className="grid grid-cols-4 gap-4 flex-1">
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>
+              <FilterLabel 
+                label="Category" 
+                tooltip="Filter guests by their relationship type (Family, Friends, Work, or custom categories)" 
+              />
+            </Label>
             {loading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -202,6 +265,12 @@ const GuestList = () => {
                   <SelectItem value="Family">Family</SelectItem>
                   <SelectItem value="Friends">Friends</SelectItem>
                   <SelectItem value="Work">Work</SelectItem>
+                  {/* Display custom categories */}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                   <SelectItem value="Others">Others</SelectItem>
                 </SelectContent>
               </Select>
@@ -209,7 +278,12 @@ const GuestList = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>Priority</Label>
+            <Label>
+              <FilterLabel 
+                label="Priority" 
+                tooltip="Filter by importance level: High (VIPs), Medium (standard guests), Low (optional attendees)" 
+              />
+            </Label>
             {loading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -222,16 +296,21 @@ const GuestList = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="High">High (VIP)</SelectItem>
+                  <SelectItem value="Medium">Medium (Standard)</SelectItem>
+                  <SelectItem value="Low">Low (Optional)</SelectItem>
                 </SelectContent>
               </Select>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label>
+              <FilterLabel 
+                label="Status" 
+                tooltip="Filter by attendance status: Confirmed (attending), Maybe (undecided), Unavailable (not attending), Pending (not yet responded)" 
+              />
+            </Label>
             {loading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -244,10 +323,10 @@ const GuestList = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Maybe">Maybe</SelectItem>
-                  <SelectItem value="Unavailable">Unavailable</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed (Attending)</SelectItem>
+                  <SelectItem value="Maybe">Maybe (Undecided)</SelectItem>
+                  <SelectItem value="Unavailable">Unavailable (Not Attending)</SelectItem>
+                  <SelectItem value="Pending">Pending (No Response)</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -256,7 +335,12 @@ const GuestList = () => {
           {!loading &&
             customFields.map((field) => (
               <div key={field.id} className="space-y-2">
-                <Label>{field.name}</Label>
+                <Label>
+                  <FilterLabel 
+                    label={field.name} 
+                    tooltip={`Filter guests by their ${field.name} value`} 
+                  />
+                </Label>
                 {field.field_type === "select" ? (
                   <Select
                     value={filters[field.name] || "all"}
@@ -390,7 +474,7 @@ const GuestList = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={categoryColors[guest.category] || categoryColors.Others}>
+                    <Badge className={getCategoryColor(guest.category)}>
                       {guest.category}
                     </Badge>
                   </TableCell>
