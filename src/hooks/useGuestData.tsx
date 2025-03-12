@@ -80,8 +80,23 @@ export function useGuestData() {
           throw new Error("User not authenticated");
         }
         
-        // For free plan users, check guest limits
-        // Only check existing guest count without querying profiles
+        // First, get user's plan type from profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('plan_type')
+          .eq('id', session.user.id)
+          .single();
+            
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          throw new Error("Could not verify user plan");
+        }
+
+        if (!profileData) {
+          throw new Error("User profile not found");
+        }
+            
+        // Get current guest count
         const { count, error: countError } = await supabase
           .from('guests')
           .select('*', { count: 'exact', head: true })
@@ -92,8 +107,8 @@ export function useGuestData() {
         const currentCount = count || 0;
         const totalAfterAdd = currentCount + newGuests.length;
           
-        // Apply 100 guest limit regardless of profile availability
-        if (totalAfterAdd > 100) {
+        // Apply limit based on plan type
+        if (profileData.plan_type === 'free' && totalAfterAdd > 100) {
           throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
         }
         
