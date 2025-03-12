@@ -29,14 +29,51 @@ const AccountSettings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      // First try to get profile from the profiles table
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, first_name, last_name, email")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        // If profile doesn't exist, create a basic one from the user data
+        setProfile({
+          id: session.user.id,
+          first_name: session.user.user_metadata.first_name || '',
+          last_name: session.user.user_metadata.last_name || '',
+          email: session.user.email || '',
+        });
+        return;
+      }
+
+      if (data) {
+        setProfile(data);
+      } else {
+        // If no profile found, create one from user metadata
+        const newProfile = {
+          id: session.user.id,
+          first_name: session.user.user_metadata.first_name || '',
+          last_name: session.user.user_metadata.last_name || '',
+          email: session.user.email || '',
+        };
+        
+        setProfile(newProfile);
+        
+        // Insert the profile into the profiles table
+        await supabase
+          .from("profiles")
+          .insert({
+            id: session.user.id,
+            first_name: newProfile.first_name,
+            last_name: newProfile.last_name,
+            email: newProfile.email
+          })
+          .then(({ error }) => {
+            if (error) console.error("Error creating profile:", error);
+          });
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",

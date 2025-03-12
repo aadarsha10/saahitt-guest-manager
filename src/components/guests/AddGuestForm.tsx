@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PlusCircle, Trash2, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,11 +12,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useGuestData } from "@/hooks/useGuestData";
 import { NewGuest } from "@/types/guest";
 import { generateGuestTemplate, parseGuestFile } from "@/utils/excelUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { useQueryClient } from "@tanstack/react-query";
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface AddGuestFormProps {
@@ -41,7 +40,7 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
   const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { addGuests } = useGuestData();
 
   const handleInputChange = (index: number, field: keyof NewGuest, value: string) => {
     const updatedForms = [...guestForms];
@@ -77,30 +76,9 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
       setUploading(true);
       setProgress(10);
       const guests = await parseGuestFile(file);
-      setProgress(50);
-
-      // Get current guest count
-      const { data: currentGuests, error: countError } = await supabase
-        .from('guests')
-        .select('id');
-
-      if (countError) throw countError;
-
-      const currentCount = currentGuests?.length || 0;
-      const totalAfterImport = currentCount + guests.length;
-
-      // Check plan limits
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan_type')
-        .single();
-
-      if (profile?.plan_type === 'free' && totalAfterImport > 100) {
-        throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
-      }
-
-      setGuestForms(guests);
       setProgress(100);
+      
+      setGuestForms(guests);
       toast({
         title: "File processed successfully",
         description: `${guests.length} guests loaded from file`,
@@ -122,56 +100,12 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
     
     try {
       setIsSubmitting(true);
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user?.id) {
-        throw new Error("User not authenticated");
-      }
-
-      // Get current guest count
-      const { data: currentGuests, error: countError } = await supabase
-        .from('guests')
-        .select('id');
-
-      if (countError) throw countError;
-
-      const currentCount = currentGuests?.length || 0;
-      const totalAfterAdd = currentCount + guestForms.length;
-
-      // Check plan limits
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan_type')
-        .single();
-
-      if (profile?.plan_type === 'free' && totalAfterAdd > 100) {
-        throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
-      }
-
-      const guestsWithUserId = guestForms.map(guest => ({
-        ...guest,
-        user_id: session.session.user.id,
-      }));
-
-      const { error } = await supabase
-        .from("guests")
-        .insert(guestsWithUserId);
-
-      if (error) throw error;
-
-      // Invalidate guests query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['guests'] });
       
-      toast({
-        title: "Success",
-        description: `${guestForms.length} guest(s) added successfully`,
-      });
+      await addGuests.mutateAsync(guestForms);
+      
       onSuccess();
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+    } catch (error) {
+      console.error("Submit error:", error);
     } finally {
       setIsSubmitting(false);
     }

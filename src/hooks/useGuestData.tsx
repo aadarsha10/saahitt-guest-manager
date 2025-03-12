@@ -17,9 +17,15 @@ export function useGuestData() {
   } = useQuery({
     queryKey: ['guests'],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
         .from('guests')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -67,12 +73,61 @@ export function useGuestData() {
 
   const addGuests = useMutation({
     mutationFn: async (newGuests: NewGuest[]) => {
-      const { error } = await supabase
-        .from('guests')
-        .insert(newGuests);
-
-      if (error) throw error;
-      return newGuests;
+      try {
+        // Get current session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Fetch user profile to check plan type
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('plan_type')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          // Continue with default free plan if profile can't be fetched
+        }
+        
+        // Check guest limits for free plan
+        if ((!profile || profile.plan_type === 'free')) {
+          // Get current guest count
+          const { count, error: countError } = await supabase
+            .from('guests')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', session.user.id);
+            
+          if (countError) throw countError;
+          
+          const currentCount = count || 0;
+          const totalAfterAdd = currentCount + newGuests.length;
+          
+          if (totalAfterAdd > 100) {
+            throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
+          }
+        }
+        
+        // Prepare guests with user_id
+        const guestsWithUserId = newGuests.map(guest => ({
+          ...guest,
+          user_id: session.user.id,
+        }));
+        
+        // Insert guests
+        const { error } = await supabase
+          .from('guests')
+          .insert(guestsWithUserId);
+          
+        if (error) throw error;
+        
+        return guestsWithUserId;
+      } catch (error: any) {
+        console.error("Error adding guests:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guests'] });
