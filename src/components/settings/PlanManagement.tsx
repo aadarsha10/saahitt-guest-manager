@@ -8,17 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Award, CreditCard, ChevronRight, ShieldCheck, CheckCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-
-interface PlanConfiguration {
-  id: number;
-  plan_id: string;
-  name: string;
-  description: string;
-  price: number;
-  guest_limit: number;
-  features: string[];
-  is_active: boolean;
-}
+import { PlanConfiguration } from "@/hooks/usePlanConfigurations";
 
 export const PlanManagement = () => {
   const navigate = useNavigate();
@@ -44,7 +34,17 @@ export const PlanManagement = () => {
           throw planError;
         }
         
-        setPlanConfigurations(planData || []);
+        // Process the features to ensure they are arrays
+        const processedPlans = (planData || []).map(plan => ({
+          ...plan,
+          features: Array.isArray(plan.features) 
+            ? plan.features 
+            : typeof plan.features === 'string' 
+              ? JSON.parse(plan.features)
+              : plan.features ? (Object.values(plan.features) as string[]) : []
+        })) as PlanConfiguration[];
+        
+        setPlanConfigurations(processedPlans);
         
         // Fetch user profile
         const { data: { session } } = await supabase.auth.getSession();

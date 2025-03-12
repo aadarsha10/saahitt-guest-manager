@@ -34,7 +34,11 @@ export function usePlanConfigurations() {
       
       return (data || []).map((plan): PlanConfiguration => ({
         ...plan,
-        features: Array.isArray(plan.features) ? plan.features : [],
+        features: Array.isArray(plan.features) 
+          ? plan.features 
+          : typeof plan.features === 'string' 
+            ? JSON.parse(plan.features)
+            : plan.features ? (Object.values(plan.features) as string[]) : [],
       }));
     },
     staleTime: 60 * 1000, // 1 minute

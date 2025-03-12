@@ -7,17 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { CircleCheck, ChevronRight, Shield, CreditCard } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-
-interface PlanConfiguration {
-  id: number;
-  plan_id: string;
-  name: string;
-  description: string;
-  price: number;
-  guest_limit: number;
-  features: string[];
-  is_active: boolean;
-}
+import { PlanConfiguration } from "@/hooks/usePlanConfigurations";
 
 interface PlanUpgradeProps {
   currentPlanId: string;
@@ -46,7 +36,16 @@ export const PlanUpgrade = ({ currentPlanId, onPlanSelected }: PlanUpgradeProps)
           throw error;
         }
         
-        setPlanConfigurations(data || []);
+        const processedPlans = (data || []).map(plan => ({
+          ...plan,
+          features: Array.isArray(plan.features) 
+            ? plan.features 
+            : typeof plan.features === 'string' 
+              ? JSON.parse(plan.features)
+              : plan.features ? (Object.values(plan.features) as string[]) : []
+        })) as PlanConfiguration[];
+        
+        setPlanConfigurations(processedPlans);
       } catch (error) {
         console.error("Error loading plans:", error);
         toast({
@@ -89,11 +88,9 @@ export const PlanUpgrade = ({ currentPlanId, onPlanSelected }: PlanUpgradeProps)
     
     setConfirmDialogOpen(false);
     
-    // If onPlanSelected callback is provided, use it (for in-dashboard flow)
     if (onPlanSelected) {
       onPlanSelected(selectedPlan);
     } else {
-      // Otherwise navigate to checkout page (for direct upgrade flow)
       navigate(`/checkout?plan=${selectedPlan}`);
     }
   };
@@ -129,7 +126,6 @@ export const PlanUpgrade = ({ currentPlanId, onPlanSelected }: PlanUpgradeProps)
           </div>
         </div>
 
-        {/* Plan Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           {planConfigurations.map((plan) => (
             <Card 
@@ -189,7 +185,6 @@ export const PlanUpgrade = ({ currentPlanId, onPlanSelected }: PlanUpgradeProps)
         </div>
       </div>
       
-      {/* Confirmation Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
