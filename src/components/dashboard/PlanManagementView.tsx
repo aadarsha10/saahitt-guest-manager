@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Shield, CreditCard, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getPlanById } from "@/lib/plans";
+import { usePlanConfigurations } from "@/hooks/usePlanConfigurations";
 
 interface PlanManagementViewProps {
   profile: any;
@@ -23,6 +23,7 @@ const PlanManagementView = ({ profile, onRefreshProfile }: PlanManagementViewPro
   const [isProcessing, setIsProcessing] = useState(false);
   
   const currentPlanId = profile?.plan_type || "free";
+  const { getPlanById, isLoading: plansLoading } = usePlanConfigurations();
   
   const handlePlanSelected = (planId: string) => {
     if (planId === "free") {
@@ -76,6 +77,8 @@ const PlanManagementView = ({ profile, onRefreshProfile }: PlanManagementViewPro
     navigate(`/checkout?plan=${selectedPlanId}`);
   };
   
+  const currentPlan = getPlanById(currentPlanId);
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -100,7 +103,7 @@ const PlanManagementView = ({ profile, onRefreshProfile }: PlanManagementViewPro
           <div className="space-y-4">
             <div className="flex flex-col space-y-1">
               <span className="text-sm font-medium text-gray-500">Current Plan</span>
-              <span className="font-medium">{getPlanById(currentPlanId).name}</span>
+              <span className="font-medium">{currentPlan.name}</span>
             </div>
             
             <Separator />

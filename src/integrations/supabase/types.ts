@@ -200,6 +200,45 @@ export type Database = {
           },
         ]
       }
+      plan_configurations: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json | null
+          guest_limit: number
+          id: number
+          is_active: boolean | null
+          name: string
+          plan_id: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          guest_limit: number
+          id?: number
+          is_active?: boolean | null
+          name: string
+          plan_id: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          guest_limit?: number
+          id?: number
+          is_active?: boolean | null
+          name?: string
+          plan_id?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

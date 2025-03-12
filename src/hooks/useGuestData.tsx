@@ -80,7 +80,17 @@ export function useGuestData() {
           throw new Error("User not authenticated");
         }
         
-        // First, get user's plan type from profiles
+        // Get plan configurations to check limits
+        const { data: planData, error: planError } = await supabase
+          .from('plan_configurations')
+          .select('*')
+          .order('id', { ascending: true });
+          
+        if (planError) {
+          console.error("Error fetching plan configurations:", planError);
+        }
+        
+        // Get user's plan type from profiles
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('plan_type')
@@ -89,27 +99,51 @@ export function useGuestData() {
             
         if (profileError) {
           console.error("Error fetching profile:", profileError);
-          throw new Error("Could not verify user plan");
-        }
-
-        if (!profileData) {
-          throw new Error("User profile not found");
-        }
-            
-        // Get current guest count
-        const { count, error: countError } = await supabase
-          .from('guests')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', session.user.id);
-            
-        if (countError) throw countError;
+          // Default to free plan if profile not found
+          const defaultPlanType = 'free';
           
-        const currentCount = count || 0;
-        const totalAfterAdd = currentCount + newGuests.length;
+          // Get default guest limit
+          const defaultPlanConfig = planData?.find(p => p.plan_id === defaultPlanType) || { guest_limit: 100 };
           
-        // Apply limit based on plan type
-        if (profileData.plan_type === 'free' && totalAfterAdd > 100) {
-          throw new Error(`Free plan is limited to 100 guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
+          // Get current guest count
+          const { count, error: countError } = await supabase
+            .from('guests')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', session.user.id);
+              
+          if (countError) throw countError;
+            
+          const currentCount = count || 0;
+          const totalAfterAdd = currentCount + newGuests.length;
+            
+          // Apply default limit
+          if (totalAfterAdd > defaultPlanConfig.guest_limit) {
+            throw new Error(`Free plan is limited to ${defaultPlanConfig.guest_limit} guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
+          }
+        } else {
+          // Profile found, get plan configuration for user's plan type
+          const planType = profileData.plan_type;
+          const planConfig = planData?.find(p => p.plan_id === planType);
+          
+          if (!planConfig) {
+            throw new Error("Plan configuration not found");
+          }
+          
+          // Get current guest count
+          const { count, error: countError } = await supabase
+            .from('guests')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', session.user.id);
+              
+          if (countError) throw countError;
+            
+          const currentCount = count || 0;
+          const totalAfterAdd = currentCount + newGuests.length;
+            
+          // Apply limit based on plan configuration
+          if (totalAfterAdd > planConfig.guest_limit) {
+            throw new Error(`Your ${planConfig.name} is limited to ${planConfig.guest_limit} guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
+          }
         }
         
         // Prepare guests with user_id

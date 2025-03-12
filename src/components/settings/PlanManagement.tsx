@@ -6,9 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { getPlanById } from "@/lib/plans";
 import { Award, CreditCard, ChevronRight, ShieldCheck, CheckCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+interface PlanConfiguration {
+  id: number;
+  plan_id: string;
+  name: string;
+  description: string;
+  price: number;
+  guest_limit: number;
+  features: string[];
+  is_active: boolean;
+}
 
 export const PlanManagement = () => {
   const navigate = useNavigate();
@@ -16,12 +26,27 @@ export const PlanManagement = () => {
   const [loading, setLoading] = useState(true);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [planConfigurations, setPlanConfigurations] = useState<PlanConfiguration[]>([]);
   
   useEffect(() => {
-    const getProfile = async () => {
+    const loadData = async () => {
       setLoading(true);
       
       try {
+        // Fetch plan configurations
+        const { data: planData, error: planError } = await supabase
+          .from("plan_configurations")
+          .select("*")
+          .order('id', { ascending: true });
+          
+        if (planError) {
+          console.error("Error fetching plan configurations:", planError);
+          throw planError;
+        }
+        
+        setPlanConfigurations(planData || []);
+        
+        // Fetch user profile
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
           setLoading(false);
@@ -34,10 +59,21 @@ export const PlanManagement = () => {
           .eq("id", session.user.id)
           .single();
           
-        if (error) throw error;
-        setProfile(data);
+        if (error) {
+          console.error("Error fetching profile:", error);
+          // Create a default profile object if one doesn't exist
+          setProfile({
+            id: session.user.id,
+            plan_type: "free",
+            first_name: session.user.user_metadata.first_name,
+            last_name: session.user.user_metadata.last_name,
+            email: session.user.email
+          });
+        } else {
+          setProfile(data);
+        }
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Error loading data:", error);
         toast({
           title: "Error",
           description: "Could not load your plan information",
@@ -48,7 +84,7 @@ export const PlanManagement = () => {
       }
     };
     
-    getProfile();
+    loadData();
   }, [toast]);
   
   const handleUpgrade = () => {
@@ -108,7 +144,12 @@ export const PlanManagement = () => {
   }
   
   const planType = profile?.plan_type || "free";
-  const plan = getPlanById(planType);
+  const plan = planConfigurations.find(p => p.plan_id === planType) || {
+    name: "Free Plan",
+    price: 0,
+    features: ["Basic sorting", "Export & print guest list", "Minimalist UI"],
+    guest_limit: 100
+  };
   
   return (
     <Card>
@@ -134,7 +175,7 @@ export const PlanManagement = () => {
               </div>
               <p className="text-gray-600">
                 {planType === "free"
-                  ? "Basic plan with up to 100 guests"
+                  ? `Basic plan with up to ${plan.guest_limit} guests`
                   : `One-time payment of Nrs. ${plan.price}`}
               </p>
             </div>
@@ -153,7 +194,7 @@ export const PlanManagement = () => {
           <div className="grid gap-4">
             <h3 className="font-semibold">Plan Features:</h3>
             <ul className="space-y-2">
-              {plan.features.map((feature) => (
+              {plan.features && Array.isArray(plan.features) && plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-gray-700">
                   <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                   <span>{feature}</span>
@@ -186,7 +227,7 @@ export const PlanManagement = () => {
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
                         This will immediately downgrade your account to the Free plan.
-                        You will lose access to all premium features and be limited to 100 guests.
+                        You will lose access to all premium features and be limited to {planConfigurations.find(p => p.plan_id === 'free')?.guest_limit || 100} guests.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

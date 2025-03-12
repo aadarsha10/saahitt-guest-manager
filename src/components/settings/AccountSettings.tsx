@@ -13,6 +13,7 @@ interface Profile {
   first_name: string;
   last_name: string;
   email: string;
+  plan_type?: string;
 }
 
 const AccountSettings = () => {
@@ -29,34 +30,48 @@ const AccountSettings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      // Create a profile object from user metadata
-      const userProfile = {
-        id: session.user.id,
-        first_name: session.user.user_metadata.first_name || '',
-        last_name: session.user.user_metadata.last_name || '',
-        email: session.user.email || '',
-      };
+      // Try to get profile from profiles table first
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
       
-      setProfile(userProfile);
-      
-      // Check if profiles table exists by trying to insert/update the profile
-      try {
-        const { error } = await supabase
-          .from("profiles")
-          .upsert({
-            id: session.user.id,
-            first_name: userProfile.first_name,
-            last_name: userProfile.last_name,
-            email: userProfile.email,
-            plan_type: 'free' // Default plan type
-          });
+      if (profileError) {
+        console.error("Error fetching profile from database:", profileError);
         
-        if (error && error.code !== '42P01') { // If error is not "relation does not exist"
-          console.error("Error upserting profile:", error);
+        // Fall back to creating profile from user metadata
+        const userProfile = {
+          id: session.user.id,
+          first_name: session.user.user_metadata.first_name || '',
+          last_name: session.user.user_metadata.last_name || '',
+          email: session.user.email || '',
+          plan_type: 'free'
+        };
+        
+        setProfile(userProfile);
+        
+        // Try to create/update the profile in the database
+        try {
+          const { error: upsertError } = await supabase
+            .from("profiles")
+            .upsert({
+              id: session.user.id,
+              first_name: userProfile.first_name,
+              last_name: userProfile.last_name,
+              email: userProfile.email,
+              plan_type: 'free'
+            });
+          
+          if (upsertError) {
+            console.error("Error upserting profile:", upsertError);
+          }
+        } catch (err) {
+          console.error("Error with profiles table upsert:", err);
         }
-      } catch (error) {
-        console.error("Error with profiles table:", error);
-        // Continue even if profiles table doesn't exist
+      } else {
+        // Use profile from database
+        setProfile(profileData);
       }
     } catch (error: any) {
       toast({
@@ -83,18 +98,23 @@ const AccountSettings = () => {
 
       if (authError) throw authError;
 
-      // Try to update profiles table, but don't fail if it doesn't exist
+      // Update profiles table
       try {
-        await supabase
+        const { error: profileError } = await supabase
           .from("profiles")
-          .update({
+          .upsert({
+            id: profile.id,
             first_name: profile.first_name,
             last_name: profile.last_name,
-          })
-          .eq("id", profile.id);
-      } catch (error) {
-        console.error("Could not update profiles table:", error);
-        // Continue even if profiles table update fails
+            email: profile.email,
+            plan_type: profile.plan_type || 'free'
+          });
+          
+        if (profileError) {
+          console.error("Error updating profile in database:", profileError);
+        }
+      } catch (err) {
+        console.error("Error updating profiles table:", err);
       }
 
       toast({
