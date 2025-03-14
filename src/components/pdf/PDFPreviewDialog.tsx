@@ -1,125 +1,89 @@
 
-import { useState, useEffect } from "react";
-import { PDFViewer } from "@react-pdf/renderer";
-import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Guest } from "@/types/guest";
-import { Event, EventGuest } from "@/types/event";
-import GuestListPDF from "./GuestListPDF";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { pdf } from "@react-pdf/renderer";
-import { saveAs } from "file-saver";
-import { CustomField } from "@/types/custom-field";
-import { supabase } from "@/integrations/supabase/client";
+import { GuestListPDF } from "./GuestListPDF";
 import { useToast } from "@/components/ui/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { Guest } from "@/types/guest";
+import FileSaver from "file-saver";
+import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+import { useMediaQuery } from "@/hooks/use-mobile";
 
 interface PDFPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   guests: Guest[];
-  event?: Event;
-  eventGuests?: EventGuest[];
 }
 
-const PDFPreviewDialog = ({
-  open,
-  onOpenChange,
-  guests,
-  event,
-  eventGuests,
-}: PDFPreviewDialogProps) => {
-  const [isClient, setIsClient] = useState(false);
+const PDFPreviewDialog = ({ open, onOpenChange, guests }: PDFPreviewDialogProps) => {
   const { toast } = useToast();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Fetch custom fields
-  const { data: customFields = [] } = useQuery({
-    queryKey: ["customFields"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("custom_fields")
-        .select("*");
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to fetch custom fields",
-        });
-        throw error;
-      }
-
-      return (
-        data?.map((field) => ({
-          ...field,
-          field_type: field.field_type as CustomField["field_type"],
-          options: (field.options as string[]) || [],
-        })) || []
-      );
-    },
-    enabled: open,
-  });
+  const [loading, setLoading] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const handleDownload = async () => {
-    const fileName = event ? `guest-list-${event.name}.pdf` : "guest-list.pdf";
-    const blob = await pdf(
-      <GuestListPDF 
-        guests={guests} 
-        customFields={customFields}
-        event={event}
-        eventGuests={eventGuests}
-      />
-    ).toBlob();
-    saveAs(blob, fileName);
+    try {
+      setLoading(true);
+      // Create filename with current date
+      const date = new Date().toISOString().split("T")[0];
+      const filename = `guest-list-${date}.pdf`;
+      
+      // Use FileSaver to download the PDF
+      // This is handled by the PDFDownloadLink component
+      
+      setLoading(false);
+      toast({
+        title: "Download Started",
+        description: "Your guest list PDF is being downloaded",
+      });
+    } catch (error) {
+      console.error("PDF download error:", error);
+      setLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Please try again later",
+      });
+    }
   };
 
-  if (!isClient) return null;
+  if (!open) return null;
 
   return (
-    <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
-      <DialogHeader>
-        <DialogTitle>
-          {event ? `Guest List for ${event.name}` : "Guest List Preview"}
-        </DialogTitle>
-        <DialogDescription>
-          Preview and download your guest list as a PDF.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="flex-1 relative mt-4">
-        <Button
-          variant="outline"
-          className="absolute top-2 right-2 z-10"
-          onClick={handleDownload}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Download PDF
-        </Button>
-        <PDFViewer
-          style={{
-            width: "100%",
-            height: "100%",
-            borderRadius: "0.5rem",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <GuestListPDF 
-            guests={guests} 
-            customFields={customFields}
-            event={event}
-            eventGuests={eventGuests}
-          />
-        </PDFViewer>
-      </div>
-    </DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Guest List Preview</DialogTitle>
+        </DialogHeader>
+        
+        {guests.length > 0 ? (
+          <div className="space-y-4">
+            <div className="border rounded-md bg-gray-50 overflow-auto" style={{ height: isMobile ? "300px" : "500px" }}>
+              <PDFViewer width="100%" height="100%" style={{ border: "none" }}>
+                <GuestListPDF guests={guests} />
+              </PDFViewer>
+            </div>
+            
+            <div className="flex justify-end">
+              <PDFDownloadLink
+                document={<GuestListPDF guests={guests} />}
+                fileName={`guest-list-${new Date().toISOString().split('T')[0]}.pdf`}
+                className="inline-block"
+              >
+                {({ loading }) => (
+                  <Button disabled={loading}>
+                    {loading ? "Preparing Download..." : "Download PDF"}
+                  </Button>
+                )}
+              </PDFDownloadLink>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <p>No guests to display in the PDF.</p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
