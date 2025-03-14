@@ -20,12 +20,20 @@ const Auth = () => {
     lastName: "",
   });
 
-  // Get redirect path from URL if present, with fallback handling for Vercel
+  // Enhanced redirect path handling for all environments
   const getRedirectPath = () => {
     const searchParams = new URLSearchParams(location.search);
     const redirect = searchParams.get("redirect");
+    
     // Use a relative path to ensure it works in all deployment environments
-    return redirect ? decodeURIComponent(redirect) : "/dashboard";
+    let path = redirect ? decodeURIComponent(redirect) : "/dashboard";
+    
+    // Ensure path starts with a slash for consistency
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    return path;
   };
 
   // Check for existing session on component mount and redirect if already logged in
@@ -36,7 +44,13 @@ const Auth = () => {
         if (session) {
           const redirectPath = getRedirectPath();
           console.log("User is already logged in, redirecting to:", redirectPath);
-          navigate(redirectPath, { replace: true });
+          
+          // Force hard navigation for Vercel deployed environments
+          if (window.location.hostname !== 'localhost') {
+            window.location.href = redirectPath;
+          } else {
+            navigate(redirectPath, { replace: true });
+          }
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -46,7 +60,7 @@ const Auth = () => {
     checkSession();
   }, [navigate, location.search]);
 
-  // Set up auth state change listener with improved error handling
+  // Enhanced auth state change listener with robust error handling
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -57,12 +71,17 @@ const Auth = () => {
             // Ensure we have the latest session
             await supabase.auth.getSession();
             
-            // Navigate to the redirect path if provided, otherwise to dashboard
+            // Get the redirect path
             const redirectPath = getRedirectPath();
             console.log("User signed in, redirecting to:", redirectPath);
             
-            // Use replace to prevent back-button issues
-            navigate(redirectPath, { replace: true });
+            // Force a hard navigation on Vercel deployments to avoid router issues
+            if (window.location.hostname !== 'localhost') {
+              window.location.href = redirectPath;
+            } else {
+              // Use the React Router navigate function on localhost
+              navigate(redirectPath, { replace: true });
+            }
           } catch (error) {
             console.error("Error during redirect after sign in:", error);
             toast({
@@ -70,6 +89,11 @@ const Auth = () => {
               title: "Navigation Error",
               description: "There was a problem redirecting you. Please try refreshing the page.",
             });
+            
+            // Fallback navigation for error cases
+            setTimeout(() => {
+              window.location.href = getRedirectPath();
+            }, 1500);
           }
         }
       }
