@@ -79,9 +79,10 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
 
   const handleCustomValueChange = (field: string, value: string) => {
     setGuestForm((prev) => {
-      if (!prev) return {};
+      // If prev is undefined or null, return a new object
+      if (!prev) return { custom_values: { [field]: value } };
       
-      // Fix: Ensure custom_values is an object before spreading
+      // Ensure custom_values is an object before spreading
       const customValues = prev.custom_values || {};
       
       return {
