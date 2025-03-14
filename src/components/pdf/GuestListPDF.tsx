@@ -1,244 +1,225 @@
 
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import React from "react";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Guest } from "@/types/guest";
-import { Event, EventGuest } from "@/types/event";
+import { CustomField } from "@/types/custom-field";
 
+// Define PDF styles
 const styles = StyleSheet.create({
   page: {
-    flexDirection: 'column',
-    backgroundColor: '#fff',
-    padding: 20,
-    fontFamily: 'Helvetica',
+    padding: 30,
+    fontFamily: "Helvetica",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontSize: 24,
     marginBottom: 20,
-    borderBottom: '2px solid #FF6F00',
-    paddingBottom: 10,
+    textAlign: "center",
+    fontWeight: "bold",
   },
-  headerLogo: {
-    width: 120,
-    height: 40,
-    marginRight: 20,
+  subheader: {
+    fontSize: 16,
+    marginBottom: 10,
+    fontWeight: "bold",
   },
-  headerText: {
-    flex: 1,
+  summary: {
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 5,
+  },
+  summaryText: {
     fontSize: 12,
-    color: '#FF6F00',
-    fontFamily: 'Helvetica-Bold',
+    marginBottom: 5,
   },
-  title: {
-    fontSize: 18,
-    marginBottom: 15,
-    textAlign: 'center',
-    fontFamily: 'Helvetica-Bold',
-    color: '#333',
+  table: {
+    display: "flex",
+    width: "auto",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#bfbfbf",
+    marginBottom: 20,
   },
-  tableHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 2,
-    borderBottomColor: '#FF6F00',
-    paddingBottom: 6,
-    marginBottom: 8,
-    backgroundColor: '#FFF5E6',
-    padding: 6,
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#bfbfbf",
+    minHeight: 30,
+    alignItems: "center",
   },
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#999',
-    paddingVertical: 6,
-    minHeight: 50,
+  tableHeaderRow: {
+    backgroundColor: "#f0f0f0",
   },
-  col1: { width: '20%', fontSize: 9 },
-  col2: { width: '12%', fontSize: 9 },
-  col3: { width: '12%', fontSize: 9 },
-  col4: { width: '12%', fontSize: 9 },
-  col5: { width: '22%', fontSize: 9 },
-  col6: { width: '22%', fontSize: 9 },
-  eventInfo: {
-    marginBottom: 15,
-    padding: 8,
-    backgroundColor: '#FFF5E6',
-    borderRadius: 4,
-    borderLeft: '3px solid #FF6F00',
-    fontSize: 9,
+  tableCellHeader: {
+    fontSize: 12,
+    fontWeight: "bold",
+    padding: 5,
+    borderRightWidth: 1,
+    borderRightColor: "#bfbfbf",
+  },
+  tableCell: {
+    fontSize: 10,
+    padding: 5,
+    borderRightWidth: 1,
+    borderRightColor: "#bfbfbf",
+  },
+  nameCell: {
+    width: "25%",
+  },
+  contactCell: {
+    width: "25%",
+  },
+  categoryCell: {
+    width: "15%",
+  },
+  priorityCell: {
+    width: "15%",
+  },
+  statusCell: {
+    width: "20%",
+  },
+  customFieldCell: {
+    width: "20%",
   },
   footer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    borderTop: '2px solid #FF6F00',
-    paddingTop: 10,
-  },
-  footerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: "absolute",
+    bottom: 30,
+    left: 30,
+    right: 30,
     fontSize: 8,
+    textAlign: "center",
+    color: "grey",
   },
-  footerLeft: {
-    flex: 1,
-    color: '#FF6F00',
-  },
-  footerCenter: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#FF6F00',
-  },
-  footerRight: {
-    flex: 1,
-    textAlign: 'right',
-    color: '#FF6F00',
-  },
-  tagline: {
+  noteText: {
     fontSize: 10,
-    color: '#FF6F00',
-    textAlign: 'center',
-    marginBottom: 15,
-    fontStyle: 'italic',
+    marginTop: 2,
+    color: "#666",
   },
-  inviteSentBadge: {
-    color: '#FF6F00',
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 9,
+  categoryBlock: {
+    marginTop: 10,
+    marginBottom: 20,
   },
-  inviteDate: {
-    fontSize: 7,
-    color: '#666',
-    marginTop: 1,
-  },
-  checklistContainer: {
-    flexDirection: 'column',
-    gap: 2,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  checkbox: {
-    width: 8,
-    height: 8,
-    border: '1px solid #666',
-    marginRight: 2,
-  },
-  checkboxLabel: {
-    fontSize: 8,
-    color: '#333',
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+    backgroundColor: "#e8e8e8",
+    padding: 5,
+    borderRadius: 3,
   },
 });
 
 interface GuestListPDFProps {
   guests: Guest[];
-  event?: Event;
-  eventGuests?: EventGuest[];
+  customFields?: CustomField[];
 }
 
-export const GuestListPDF = ({ guests, event, eventGuests }: GuestListPDFProps) => {
+const GuestListPDF: React.FC<GuestListPDFProps> = ({ guests, customFields = [] }) => {
+  // Count guests by category
+  const guestsByCategory: Record<string, Guest[]> = {};
+  guests.forEach((guest) => {
+    const category = guest.category || "Others";
+    if (!guestsByCategory[category]) {
+      guestsByCategory[category] = [];
+    }
+    guestsByCategory[category].push(guest);
+  });
+
+  // Count guests by status
+  const statusCount: Record<string, number> = {
+    Confirmed: 0,
+    Maybe: 0,
+    Unavailable: 0,
+    Pending: 0,
+  };
+
+  guests.forEach((guest) => {
+    if (guest.status) {
+      statusCount[guest.status]++;
+    }
+  });
+
+  // Function to render the guest table headers with custom fields
+  const renderTableHeaders = () => (
+    <View style={[styles.tableRow, styles.tableHeaderRow]}>
+      <Text style={[styles.tableCellHeader, styles.nameCell]}>Guest Name</Text>
+      <Text style={[styles.tableCellHeader, styles.contactCell]}>Contact</Text>
+      <Text style={[styles.tableCellHeader, styles.categoryCell]}>Category</Text>
+      <Text style={[styles.tableCellHeader, styles.priorityCell]}>Priority</Text>
+      <Text style={[styles.tableCellHeader, styles.statusCell]}>Status</Text>
+      {customFields.map((field) => (
+        <Text key={field.id} style={[styles.tableCellHeader, styles.customFieldCell]}>
+          {field.name}
+        </Text>
+      ))}
+    </View>
+  );
+
+  // Function to render a single guest row with custom fields
+  const renderGuestRow = (guest: Guest) => (
+    <View key={guest.id} style={styles.tableRow}>
+      <Text style={[styles.tableCell, styles.nameCell]}>
+        {guest.first_name} {guest.last_name}
+      </Text>
+      <Text style={[styles.tableCell, styles.contactCell]}>
+        {guest.email ? `${guest.email}\n` : ""}
+        {guest.phone ? guest.phone : ""}
+      </Text>
+      <Text style={[styles.tableCell, styles.categoryCell]}>{guest.category}</Text>
+      <Text style={[styles.tableCell, styles.priorityCell]}>{guest.priority}</Text>
+      <Text style={[styles.tableCell, styles.statusCell]}>{guest.status}</Text>
+      {customFields.map((field) => (
+        <Text key={field.id} style={[styles.tableCell, styles.customFieldCell]}>
+          {String(guest.custom_values[field.name] || "-")}
+        </Text>
+      ))}
+    </View>
+  );
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Image
-            src="/lovable-uploads/a36de6e2-9eba-4c99-95c9-361c97bd7293.png"
-            style={styles.headerLogo}
-          />
-          <Text style={styles.headerText}>
-            Guest Management Tool by Saahitt
+        <Text style={styles.header}>Guest List</Text>
+
+        {/* Summary Section */}
+        <View style={styles.summary}>
+          <Text style={styles.subheader}>Summary</Text>
+          <Text style={styles.summaryText}>Total Guests: {guests.length}</Text>
+          <Text style={styles.summaryText}>
+            Confirmed: {statusCount.Confirmed} | Maybe: {statusCount.Maybe} |
+            Unavailable: {statusCount.Unavailable} | Pending:{" "}
+            {statusCount.Pending}
           </Text>
         </View>
 
-        <Text style={styles.tagline}>
-          Making event planning easier, one guest list at a time
-        </Text>
-
-        <Text style={styles.title}>
-          {event ? `Guest List - ${event.name}` : 'Complete Guest List'}
-        </Text>
-
-        {event && (
-          <View style={styles.eventInfo}>
-            <Text>Event: {event.name}</Text>
-            <Text>Date: {event.date ? new Date(event.date).toLocaleDateString() : 'Not set'}</Text>
-            <Text>Description: {event.description || 'No description'}</Text>
-          </View>
-        )}
-
-        <View style={styles.tableHeader}>
-          <Text style={styles.col1}>Name</Text>
-          <Text style={styles.col2}>Category</Text>
-          <Text style={styles.col3}>Priority</Text>
-          <Text style={styles.col4}>Status</Text>
-          <Text style={styles.col5}>Invite Status</Text>
-          <Text style={styles.col6}>Checklist</Text>
+        {/* All Guests Table with custom fields */}
+        <Text style={styles.subheader}>All Guests</Text>
+        <View style={styles.table}>
+          {renderTableHeaders()}
+          {guests.map(renderGuestRow)}
         </View>
 
-        {guests.map((guest) => {
-          const eventGuest = eventGuests?.find(eg => eg.guest_id === guest.id);
-          return (
-            <View key={guest.id} style={styles.row}>
-              <Text style={styles.col1}>
-                {guest.first_name} {guest.last_name}
-              </Text>
-              <Text style={styles.col2}>{guest.category}</Text>
-              <Text style={styles.col3}>{guest.priority}</Text>
-              <Text style={styles.col4}>{guest.status}</Text>
-              <View style={styles.col5}>
-                <Text style={styles.inviteSentBadge}>
-                  {eventGuest?.invite_sent ? '✓ Invite Sent' : '⧖ Pending'}
-                </Text>
-                {eventGuest?.invite_sent_at && (
-                  <Text style={styles.inviteDate}>
-                    Sent: {new Date(eventGuest.invite_sent_at).toLocaleDateString()}
-                  </Text>
-                )}
-                {eventGuest?.invite_method && (
-                  <Text style={styles.inviteDate}>
-                    Via: {eventGuest.invite_method}
-                  </Text>
-                )}
-              </View>
-              <View style={[styles.col6, styles.checklistContainer]}>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text style={styles.checkboxLabel}>Arrived</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text style={styles.checkboxLabel}>Plus One</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text style={styles.checkboxLabel}>Gift Received</Text>
-                </View>
-                <View style={styles.checkboxRow}>
-                  <View style={styles.checkbox} />
-                  <Text style={styles.checkboxLabel}>Thank You Sent</Text>
-                </View>
-              </View>
-            </View>
-          );
-        })}
-
-        <View style={styles.footer}>
-          <View style={styles.footerContent}>
-            <View style={styles.footerLeft}>
-              <Text>Powered by Saahitt</Text>
-              <Text>Contact: support@saahitt.com</Text>
-            </View>
-            <View style={styles.footerCenter}>
-              <Text>Event Planning Made Simple</Text>
-              <Text>Visit: www.saahitt.com</Text>
-            </View>
-            <View style={styles.footerRight}>
-              <Text>Generated by Guest Management Tool</Text>
-              <Text>Page 1</Text>
+        {/* Guests by Category */}
+        <Text style={styles.subheader}>Guests by Category</Text>
+        {Object.keys(guestsByCategory).map((category) => (
+          <View key={category} style={styles.categoryBlock}>
+            <Text style={styles.categoryTitle}>
+              {category} ({guestsByCategory[category].length})
+            </Text>
+            <View style={styles.table}>
+              {renderTableHeaders()}
+              {guestsByCategory[category].map(renderGuestRow)}
             </View>
           </View>
-        </View>
+        ))}
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          Generated on {new Date().toLocaleDateString()} with Saahitt Event
+          Invite Manager
+        </Text>
       </Page>
     </Document>
   );
 };
+
+export default GuestListPDF;

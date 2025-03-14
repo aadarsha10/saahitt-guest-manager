@@ -134,10 +134,11 @@ export function useGuestData() {
           }
         }
         
-        // Prepare guests with user_id
+        // Prepare guests with user_id and ensure custom_values is an object
         const guestsWithUserId = newGuests.map(guest => ({
           ...guest,
           user_id: session.user.id,
+          custom_values: guest.custom_values || {},
         }));
         
         // Insert guests
@@ -171,13 +172,19 @@ export function useGuestData() {
 
   const updateGuest = useMutation({
     mutationFn: async (guest: Guest) => {
+      // Ensure custom_values is an object, not null or undefined
+      const updatedGuest = {
+        ...guest,
+        custom_values: guest.custom_values || {}
+      };
+      
       const { error } = await supabase
         .from('guests')
-        .update(guest)
+        .update(updatedGuest)
         .eq('id', guest.id);
 
       if (error) throw error;
-      return guest;
+      return updatedGuest;
     },
     onSuccess: (updatedGuest) => {
       queryClient.invalidateQueries({ queryKey: ['guests'] });
@@ -239,6 +246,22 @@ export function useGuestData() {
     return categoryStats;
   };
 
+  // Get statistics on guests by custom field value
+  const getGuestStatsByCustomField = (fieldName: string) => {
+    const valueStats: Record<string, number> = {};
+    
+    guests.forEach(guest => {
+      const value = String(guest.custom_values?.[fieldName] || 'Not Set');
+      if (valueStats[value]) {
+        valueStats[value]++;
+      } else {
+        valueStats[value] = 1;
+      }
+    });
+    
+    return valueStats;
+  };
+
   return {
     guests,
     isLoading,
@@ -250,5 +273,6 @@ export function useGuestData() {
     updateGuest,
     deleteGuest,
     getGuestStatsByCategory,
+    getGuestStatsByCustomField,
   };
 }

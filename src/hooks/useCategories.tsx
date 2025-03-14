@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Category, NewCategory } from "@/types/category";
+import { Category } from "@/types/category";
 import { useToast } from "@/components/ui/use-toast";
 
-export function useCategories() {
+export const useCategories = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -17,47 +17,36 @@ export function useCategories() {
   } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("User not authenticated");
-      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("User not authenticated");
 
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('name', { ascending: true });
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('name', { ascending: true });
 
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to fetch categories",
-        });
+        if (error) throw error;
+        return data as Category[];
+      } catch (error) {
+        console.error("Error fetching categories:", error);
         throw error;
       }
-      
-      return data || [];
-    },
-    staleTime: 30000, // 30 seconds
+    }
   });
 
   const addCategory = useMutation({
-    mutationFn: async (newCategory: NewCategory) => {
+    mutationFn: async (newCategory: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("User not authenticated");
-      }
-
-      const categoryWithUser = {
-        ...newCategory,
-        user_id: session.user.id,
-      };
+      if (!session) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
         .from('categories')
-        .insert([categoryWithUser])
-        .select()
+        .insert([
+          { ...newCategory, user_id: session.user.id }
+        ])
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -83,7 +72,10 @@ export function useCategories() {
     mutationFn: async (category: Category) => {
       const { error } = await supabase
         .from('categories')
-        .update(category)
+        .update({
+          name: category.name,
+          description: category.description
+        })
         .eq('id', category.id);
 
       if (error) throw error;
@@ -131,14 +123,38 @@ export function useCategories() {
     },
   });
 
-  // Get all categories including default ones
-  const getAllCategories = () => {
-    const defaultCategories = ["Family", "Friends", "Work", "Others"];
-    const customCategories = categories.map(cat => cat.name);
+  // Helper function to get category color
+  const getCategoryColor = (categoryName: string) => {
+    const defaultColors = {
+      Family: "bg-purple-100 text-purple-800 border-purple-200",
+      Friends: "bg-blue-100 text-blue-800 border-blue-200",
+      Work: "bg-orange-100 text-orange-800 border-orange-200",
+      Others: "bg-gray-100 text-gray-800 border-gray-200"
+    };
+
+    // Check if it's one of the default categories
+    if (categoryName in defaultColors) {
+      return defaultColors[categoryName as keyof typeof defaultColors];
+    }
     
-    // Combine and remove duplicates
-    const allCategories = [...new Set([...defaultCategories, ...customCategories])];
-    return allCategories.sort();
+    // For custom categories, return a consistent color based on the name
+    // This ensures the same category always gets the same color
+    const customColors = [
+      "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "bg-pink-100 text-pink-800 border-pink-200",
+      "bg-teal-100 text-teal-800 border-teal-200",
+      "bg-lime-100 text-lime-800 border-lime-200",
+      "bg-amber-100 text-amber-800 border-amber-200",
+      "bg-cyan-100 text-cyan-800 border-cyan-200",
+      "bg-violet-100 text-violet-800 border-violet-200",
+      "bg-rose-100 text-rose-800 border-rose-200"
+    ];
+    
+    // Use the sum of character codes to create a deterministic index
+    const charSum = categoryName.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const colorIndex = charSum % customColors.length;
+    
+    return customColors[colorIndex];
   };
 
   return {
@@ -149,6 +165,6 @@ export function useCategories() {
     addCategory,
     updateCategory,
     deleteCategory,
-    getAllCategories,
+    getCategoryColor
   };
-}
+};

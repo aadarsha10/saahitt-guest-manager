@@ -1,8 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Upload, Download, Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { NewGuest } from "@/types/guest";
+import { CustomField } from "@/types/custom-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -10,137 +14,122 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useGuestData } from "@/hooks/useGuestData";
-import { NewGuest } from "@/types/guest";
-import { generateGuestTemplate, parseGuestFile } from "@/utils/excelUtils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Category } from "@/types/category";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
+import { useCategories } from "@/hooks/useCategories";
 
 interface AddGuestFormProps {
   onSuccess: () => void;
 }
 
-export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
-  const [guestForms, setGuestForms] = useState<NewGuest[]>([{
-    user_id: '',
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    category: 'Others',
-    priority: 'Medium',
-    status: 'Pending',
-    notes: '',
+const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
+  const [guestForm, setGuestForm] = useState<Partial<NewGuest>>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    category: "Others",
+    priority: "Medium",
+    status: "Pending",
+    notes: "",
     custom_values: {},
-  }]);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
+  });
+  
   const { toast } = useToast();
   const { addGuests } = useGuestData();
+  const { categories } = useCategories();
+  
+  // Fetch custom fields
+  const { data: customFields = [] } = useQuery({
+    queryKey: ["customFields"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_fields")
+        .select("*")
+        .order("created_at", { ascending: true });
 
-  // Fetch custom categories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('name', { ascending: true });
-
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch custom fields",
+        });
+        throw error;
       }
-    };
 
-    fetchCategories();
-  }, []);
+      return (
+        data?.map((field) => ({
+          ...field,
+          field_type: field.field_type as CustomField["field_type"],
+          options: (field.options as string[]) || [],
+        })) || []
+      );
+    },
+  });
 
-  const handleInputChange = (index: number, field: keyof NewGuest, value: string) => {
-    const updatedForms = [...guestForms];
-    updatedForms[index] = { ...updatedForms[index], [field]: value };
-    setGuestForms(updatedForms);
+  const handleInputChange = (field: string, value: string) => {
+    setGuestForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const addGuestForm = () => {
-    setGuestForms([...guestForms, {
-      user_id: '',
-      first_name: '',
-      last_name: '',
-      email: '',
-      phone: '',
-      category: 'Others',
-      priority: 'Medium',
-      status: 'Pending',
-      notes: '',
-      custom_values: {},
-    }]);
-  };
-
-  const removeGuestForm = (index: number) => {
-    const updatedForms = guestForms.filter((_, i) => i !== index);
-    setGuestForms(updatedForms);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      setProgress(10);
-      const guests = await parseGuestFile(file);
-      setProgress(100);
+  const handleCustomValueChange = (field: string, value: string) => {
+    setGuestForm((prev) => {
+      if (!prev) return {};
       
-      setGuestForms(guests);
-      toast({
-        title: "File processed successfully",
-        description: `${guests.length} guests loaded from file`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error processing file",
-        description: error.message,
-      });
-    } finally {
-      setUploading(false);
-      setProgress(0);
-    }
+      const customValues = prev.custom_values || {};
+      
+      return {
+        ...prev,
+        custom_values: {
+          ...customValues,
+          [field]: value,
+        },
+      };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      setIsSubmitting(true);
-      
-      await addGuests.mutateAsync(guestForms);
-      
-      onSuccess();
-    } catch (error) {
-      console.error("Submit error:", error);
-    } finally {
-      setIsSubmitting(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No authenticated user");
+
+      if (!guestForm.first_name) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "First name is required",
+        });
+        return;
+      }
+
+      const newGuest: NewGuest = {
+        user_id: session.user.id,
+        first_name: guestForm.first_name || "",
+        last_name: guestForm.last_name || "",
+        email: guestForm.email || "",
+        phone: guestForm.phone || "",
+        category: guestForm.category || "Others",
+        priority: (guestForm.priority || "Medium") as "High" | "Medium" | "Low",
+        status: (guestForm.status || "Pending") as "Confirmed" | "Maybe" | "Unavailable" | "Pending",
+        notes: guestForm.notes || "",
+        custom_values: guestForm.custom_values || {},
+      };
+
+      addGuests.mutate([newGuest], {
+        onSuccess: onSuccess,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
     }
   };
 
@@ -151,7 +140,7 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
             <p>{tooltip}</p>
@@ -163,267 +152,227 @@ export default function AddGuestForm({ onSuccess }: AddGuestFormProps) {
 
   return (
     <div className="p-4">
-      <DialogTitle className="text-2xl font-bold mb-2">Add Guests</DialogTitle>
-      <DialogDescription className="mb-4 text-muted-foreground">
-        Add new guests to your event manually or import from a spreadsheet.
-      </DialogDescription>
-      
-      <Tabs defaultValue="manual">
-        <TabsList className="mb-4">
-          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
-          <TabsTrigger value="import">Import from File</TabsTrigger>
-        </TabsList>
+      <h2 className="text-xl font-bold mb-4">Add New Guest</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="first_name">
+              <FieldLabel
+                label="First Name"
+                tooltip="The guest's first name (required)"
+              />
+            </Label>
+            <Input
+              id="first_name"
+              value={guestForm.first_name || ""}
+              onChange={(e) => handleInputChange("first_name", e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">
+              <FieldLabel
+                label="Last Name"
+                tooltip="The guest's last name (optional)"
+              />
+            </Label>
+            <Input
+              id="last_name"
+              value={guestForm.last_name || ""}
+              onChange={(e) => handleInputChange("last_name", e.target.value)}
+            />
+          </div>
+        </div>
 
-        <TabsContent value="manual">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {guestForms.map((guest, index) => (
-              <div key={index} className="p-4 border rounded-lg space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Guest {index + 1}</h3>
-                  {guestForms.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeGuestForm(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">
+              <FieldLabel
+                label="Email"
+                tooltip="Contact email for digital invites"
+              />
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={guestForm.email || ""}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">
+              <FieldLabel
+                label="Phone"
+                tooltip="Contact phone number"
+              />
+            </Label>
+            <Input
+              id="phone"
+              value={guestForm.phone || ""}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
+            />
+          </div>
+        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`first-name-${index}`}>
-                      <FieldLabel 
-                        label="First Name*" 
-                        tooltip="The guest's first name (required)" 
-                      />
-                    </Label>
-                    <Input
-                      id={`first-name-${index}`}
-                      placeholder="Enter first name"
-                      value={guest.first_name}
-                      onChange={(e) => handleInputChange(index, 'first_name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`last-name-${index}`}>
-                      <FieldLabel 
-                        label="Last Name" 
-                        tooltip="The guest's last name (optional)" 
-                      />
-                    </Label>
-                    <Input
-                      id={`last-name-${index}`}
-                      placeholder="Enter last name"
-                      value={guest.last_name}
-                      onChange={(e) => handleInputChange(index, 'last_name', e.target.value)}
-                    />
-                  </div>
-                </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="category">
+              <FieldLabel
+                label="Category"
+                tooltip="Guest relationship type (family, friends, work, etc.)"
+              />
+            </Label>
+            <Select
+              value={guestForm.category || "Others"}
+              onValueChange={(value) => handleInputChange("category", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Friends">Friends</SelectItem>
+                <SelectItem value="Work">Work</SelectItem>
+                {/* Display custom categories */}
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.name}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="Others">Others</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="priority">
+              <FieldLabel
+                label="Priority"
+                tooltip="Importance level: High (VIPs), Medium (standard), Low (optional)"
+              />
+            </Label>
+            <Select
+              value={guestForm.priority || "Medium"}
+              onValueChange={(value) =>
+                handleInputChange("priority", value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="High">High (VIP)</SelectItem>
+                <SelectItem value="Medium">Medium (Standard)</SelectItem>
+                <SelectItem value="Low">Low (Optional)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="status">
+              <FieldLabel
+                label="Status"
+                tooltip="Attendance status: Confirmed, Maybe, Unavailable, or Pending"
+              />
+            </Label>
+            <Select
+              value={guestForm.status || "Pending"}
+              onValueChange={(value) =>
+                handleInputChange("status", value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Confirmed">Confirmed (Attending)</SelectItem>
+                <SelectItem value="Maybe">Maybe (Undecided)</SelectItem>
+                <SelectItem value="Unavailable">Unavailable (Not Attending)</SelectItem>
+                <SelectItem value="Pending">Pending (No Response)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`email-${index}`}>
-                      <FieldLabel 
-                        label="Email" 
-                        tooltip="Contact email for digital invites and communications" 
-                      />
-                    </Label>
-                    <Input
-                      id={`email-${index}`}
-                      type="email"
-                      placeholder="example@email.com"
-                      value={guest.email}
-                      onChange={(e) => handleInputChange(index, 'email', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`phone-${index}`}>
-                      <FieldLabel 
-                        label="Phone" 
-                        tooltip="Contact phone number for SMS notifications" 
-                      />
-                    </Label>
-                    <Input
-                      id={`phone-${index}`}
-                      placeholder="+1 (555) 123-4567"
-                      value={guest.phone}
-                      onChange={(e) => handleInputChange(index, 'phone', e.target.value)}
-                    />
-                  </div>
-                </div>
+        <div className="space-y-2">
+          <Label htmlFor="notes">
+            <FieldLabel
+              label="Notes"
+              tooltip="Additional information, special requests, dietary requirements, etc."
+            />
+          </Label>
+          <Textarea
+            id="notes"
+            placeholder="Add any notes, special requirements, dietary restrictions, etc."
+            value={guestForm.notes || ""}
+            onChange={(e) => handleInputChange("notes", e.target.value)}
+            rows={3}
+          />
+        </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`category-${index}`}>
-                      <FieldLabel 
-                        label="Category" 
-                        tooltip="Group your guests by relationship (Family, Friends, Work, or custom categories)" 
-                      />
-                    </Label>
-                    <Select
-                      value={guest.category}
-                      onValueChange={(value) => handleInputChange(index, 'category', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Family">Family</SelectItem>
-                        <SelectItem value="Friends">Friends</SelectItem>
-                        <SelectItem value="Work">Work</SelectItem>
-                        {/* Map custom categories */}
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Others">Others</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`priority-${index}`}>
-                      <FieldLabel 
-                        label="Priority" 
-                        tooltip="Importance level: High (VIPs), Medium (standard guests), Low (optional attendees)" 
-                      />
-                    </Label>
-                    <Select
-                      value={guest.priority}
-                      onValueChange={(value) => handleInputChange(index, 'priority', value as 'High' | 'Medium' | 'Low')}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="High">High (VIP)</SelectItem>
-                        <SelectItem value="Medium">Medium (Standard)</SelectItem>
-                        <SelectItem value="Low">Low (Optional)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`status-${index}`}>
-                      <FieldLabel 
-                        label="Status" 
-                        tooltip="Attendance status: Confirmed (attending), Maybe (undecided), Unavailable (not attending), Pending (not yet responded)" 
-                      />
-                    </Label>
-                    <Select
-                      value={guest.status}
-                      onValueChange={(value) => handleInputChange(index, 'status', value as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending')}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Confirmed">Confirmed (Attending)</SelectItem>
-                        <SelectItem value="Maybe">Maybe (Undecided)</SelectItem>
-                        <SelectItem value="Unavailable">Unavailable (Not Attending)</SelectItem>
-                        <SelectItem value="Pending">Pending (No Response)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`notes-${index}`}>
-                    <FieldLabel 
-                      label="Notes" 
-                      tooltip="Additional information about the guest (dietary restrictions, special accommodations, etc.)" 
+        {/* Custom Fields Section */}
+        {customFields.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-md font-medium">Custom Fields</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {customFields.map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <Label htmlFor={`custom-${field.id}`}>
+                    <FieldLabel
+                      label={field.name}
+                      tooltip={`Custom field: ${field.name} (${field.field_type})`}
                     />
                   </Label>
-                  <Textarea
-                    id={`notes-${index}`}
-                    placeholder="Add any special notes, dietary restrictions, etc."
-                    value={guest.notes}
-                    onChange={(e) => handleInputChange(index, 'notes', e.target.value)}
-                  />
+                  {field.field_type === "text" && (
+                    <Input
+                      id={`custom-${field.id}`}
+                      value={guestForm.custom_values?.[field.name] || ""}
+                      onChange={(e) => handleCustomValueChange(field.name, e.target.value)}
+                      placeholder={`Enter ${field.name}`}
+                    />
+                  )}
+                  {field.field_type === "number" && (
+                    <Input
+                      id={`custom-${field.id}`}
+                      type="number"
+                      value={guestForm.custom_values?.[field.name] || ""}
+                      onChange={(e) => handleCustomValueChange(field.name, e.target.value)}
+                      placeholder={`Enter ${field.name}`}
+                    />
+                  )}
+                  {field.field_type === "date" && (
+                    <Input
+                      id={`custom-${field.id}`}
+                      type="date"
+                      value={guestForm.custom_values?.[field.name] || ""}
+                      onChange={(e) => handleCustomValueChange(field.name, e.target.value)}
+                    />
+                  )}
+                  {field.field_type === "select" && (
+                    <Select
+                      value={guestForm.custom_values?.[field.name] || ""}
+                      onValueChange={(value) => handleCustomValueChange(field.name, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={`Select ${field.name}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options?.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
-              </div>
-            ))}
-
-            <div className="flex justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addGuestForm}
-                className="flex items-center"
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Another Guest
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-[#FF6F00] hover:bg-[#FF6F00]/90"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save All Guests"}
-              </Button>
+              ))}
             </div>
-          </form>
-        </TabsContent>
-
-        <TabsContent value="import">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={generateGuestTemplate}
-                className="flex items-center"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Template
-              </Button>
-            </div>
-
-            <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-4">
-              <Input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center justify-center"
-              >
-                <Upload className="h-8 w-8 mb-2 text-gray-400" />
-                <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                <p className="text-xs text-gray-500">Excel files only (xlsx, xls)</p>
-              </label>
-            </div>
-
-            {uploading && (
-              <div className="space-y-2">
-                <Progress value={progress} />
-                <p className="text-sm text-gray-600 text-center">Processing file...</p>
-              </div>
-            )}
-
-            {guestForms.length > 1 && (
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="bg-[#FF6F00] hover:bg-[#FF6F00]/90"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Importing..." : `Import ${guestForms.length} Guests`}
-                </Button>
-              </div>
-            )}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+
+        <Button type="submit" className="w-full">Add Guest</Button>
+      </form>
     </div>
   );
-}
+};
+
+export default AddGuestForm;
