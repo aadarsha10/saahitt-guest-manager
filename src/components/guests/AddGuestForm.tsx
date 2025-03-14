@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewGuest } from "@/types/guest";
@@ -80,6 +81,7 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
     setGuestForm((prev) => {
       if (!prev) return {};
       
+      // Fix: Ensure custom_values is an object before spreading
       const customValues = prev.custom_values || {};
       
       return {
