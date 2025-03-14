@@ -57,10 +57,27 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log("Auth state changed in protected route:", event);
-        setAuthenticated(!!session);
-        setLoading(false);
+        
+        // For SIGNED_OUT events, make sure we update state immediately
+        if (event === 'SIGNED_OUT') {
+          setAuthenticated(false);
+          setLoading(false);
+          return;
+        }
+        
+        // For other events, verify session 
+        try {
+          // Get the latest session state
+          const { data } = await supabase.auth.getSession();
+          setAuthenticated(!!data.session);
+        } catch (error) {
+          console.error("Error checking session after auth state change:", error);
+          setAuthenticated(false);
+        } finally {
+          setLoading(false);
+        }
       }
     );
 
@@ -77,7 +94,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  const currentPath = `${location.pathname}${location.search}`;
+  // Use relative paths for redirects to ensure they work in all environments
+  const currentPath = location.pathname + location.search;
   return authenticated ? 
     <>{children}</> : 
     <Navigate to={`/auth?redirect=${encodeURIComponent(currentPath)}`} replace />;

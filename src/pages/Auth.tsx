@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,10 +20,11 @@ const Auth = () => {
     lastName: "",
   });
 
-  // Get redirect path from URL if present
+  // Get redirect path from URL if present, with fallback handling for Vercel
   const getRedirectPath = () => {
     const searchParams = new URLSearchParams(location.search);
     const redirect = searchParams.get("redirect");
+    // Use a relative path to ensure it works in all deployment environments
     return redirect ? decodeURIComponent(redirect) : "/dashboard";
   };
 
@@ -44,16 +46,31 @@ const Auth = () => {
     checkSession();
   }, [navigate, location.search]);
 
-  // Set up auth state change listener
+  // Set up auth state change listener with improved error handling
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log("Auth state changed:", event, session ? "session exists" : "no session");
+        
         if (event === "SIGNED_IN" && session) {
-          // Navigate to the redirect path if provided, otherwise to dashboard
-          const redirectPath = getRedirectPath();
-          console.log("User signed in, redirecting to:", redirectPath);
-          navigate(redirectPath, { replace: true });
+          try {
+            // Ensure we have the latest session
+            await supabase.auth.getSession();
+            
+            // Navigate to the redirect path if provided, otherwise to dashboard
+            const redirectPath = getRedirectPath();
+            console.log("User signed in, redirecting to:", redirectPath);
+            
+            // Use replace to prevent back-button issues
+            navigate(redirectPath, { replace: true });
+          } catch (error) {
+            console.error("Error during redirect after sign in:", error);
+            toast({
+              variant: "destructive",
+              title: "Navigation Error",
+              description: "There was a problem redirecting you. Please try refreshing the page.",
+            });
+          }
         }
       }
     );
@@ -61,7 +78,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, location.search]);
+  }, [navigate, location.search, toast]);
 
   // Parse URL params to determine initial tab
   useEffect(() => {
