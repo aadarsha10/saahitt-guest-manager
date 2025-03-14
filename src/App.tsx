@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,6 +24,7 @@ import TrackRSVPsArticle from "./pages/help/TrackRSVPsArticle";
 import PrintListsArticle from "./pages/help/PrintListsArticle";
 import UpgradePlanArticle from "./pages/help/UpgradePlanArticle";
 
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -45,11 +47,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         console.log("Auth check result:", isAuthenticated ? "authenticated" : "not authenticated");
         setAuthenticated(isAuthenticated);
         setLoading(false);
-        
-        if (!isAuthenticated && window.location.hostname !== 'localhost') {
-          const currentPath = location.pathname + location.search;
-          window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
-        }
       } catch (error) {
         console.error("Auth check error:", error);
         setAuthenticated(false);
@@ -63,17 +60,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       async (event, session) => {
         console.log("Auth state changed in protected route:", event);
         
+        // For SIGNED_OUT events, make sure we update state immediately
         if (event === 'SIGNED_OUT') {
           setAuthenticated(false);
           setLoading(false);
-          
-          if (window.location.hostname !== 'localhost') {
-            window.location.href = '/';
-          }
           return;
         }
         
+        // For other events, verify session 
         try {
+          // Get the latest session state
           const { data } = await supabase.auth.getSession();
           setAuthenticated(!!data.session);
         } catch (error) {
@@ -88,7 +84,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   if (loading) {
     return (
@@ -98,16 +94,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Use relative paths for redirects to ensure they work in all environments
   const currentPath = location.pathname + location.search;
-  
-  if (authenticated) {
-    return <>{children}</>;
-  } else if (window.location.hostname === 'localhost') {
-    return <Navigate to={`/auth?redirect=${encodeURIComponent(currentPath)}`} replace />;
-  } else {
-    window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
-    return null;
-  }
+  return authenticated ? 
+    <>{children}</> : 
+    <Navigate to={`/auth?redirect=${encodeURIComponent(currentPath)}`} replace />;
 };
 
 const App = () => {
@@ -128,6 +119,7 @@ const App = () => {
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/email-support" element={<EmailSupport />} />
             
+            {/* Help Articles */}
             <Route path="/help/article/import-guests" element={<ImportGuestsArticle />} />
             <Route path="/help/article/guest-categories" element={<GuestCategoriesArticle />} />
             <Route path="/help/article/track-rsvps" element={<TrackRSVPsArticle />} />
