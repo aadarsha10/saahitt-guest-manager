@@ -3,6 +3,8 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
+import { Event, EventGuest } from "@/types/event";
+import { format } from "date-fns";
 
 // Define PDF styles
 const styles = StyleSheet.create({
@@ -20,6 +22,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     fontWeight: "bold",
+  },
+  eventInfo: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 5,
+  },
+  eventDetail: {
+    fontSize: 12,
+    marginBottom: 3,
   },
   summary: {
     marginBottom: 20,
@@ -66,7 +78,7 @@ const styles = StyleSheet.create({
     width: "25%",
   },
   contactCell: {
-    width: "25%",
+    width: "20%",
   },
   categoryCell: {
     width: "15%",
@@ -75,7 +87,7 @@ const styles = StyleSheet.create({
     width: "15%",
   },
   statusCell: {
-    width: "20%",
+    width: "15%",
   },
   customFieldCell: {
     width: "20%",
@@ -111,9 +123,16 @@ const styles = StyleSheet.create({
 interface GuestListPDFProps {
   guests: Guest[];
   customFields?: CustomField[];
+  event?: Event;
+  eventGuests?: EventGuest[];
 }
 
-const GuestListPDF: React.FC<GuestListPDFProps> = ({ guests, customFields = [] }) => {
+const GuestListPDF: React.FC<GuestListPDFProps> = ({ 
+  guests, 
+  customFields = [], 
+  event,
+  eventGuests = []
+}) => {
   // Count guests by category
   const guestsByCategory: Record<string, Guest[]> = {};
   guests.forEach((guest) => {
@@ -178,7 +197,36 @@ const GuestListPDF: React.FC<GuestListPDFProps> = ({ guests, customFields = [] }
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>Guest List</Text>
+        <Text style={styles.header}>
+          {event ? `Guest List: ${event.name}` : "Guest List"}
+        </Text>
+
+        {/* Event Information Section (if event is provided) */}
+        {event && (
+          <View style={styles.eventInfo}>
+            <Text style={styles.subheader}>Event Details</Text>
+            <Text style={styles.eventDetail}>
+              <Text style={{ fontWeight: 'bold' }}>Name: </Text> 
+              {event.name}
+            </Text>
+            {event.date && (
+              <Text style={styles.eventDetail}>
+                <Text style={{ fontWeight: 'bold' }}>Date: </Text> 
+                {format(new Date(event.date), "PPp")}
+              </Text>
+            )}
+            {event.description && (
+              <Text style={styles.eventDetail}>
+                <Text style={{ fontWeight: 'bold' }}>Description: </Text> 
+                {event.description}
+              </Text>
+            )}
+            <Text style={styles.eventDetail}>
+              <Text style={{ fontWeight: 'bold' }}>Total Invites: </Text> 
+              {eventGuests.length}
+            </Text>
+          </View>
+        )}
 
         {/* Summary Section */}
         <View style={styles.summary}>

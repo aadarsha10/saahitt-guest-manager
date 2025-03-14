@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Guest } from "@/types/guest";
+import { Event, EventGuest } from "@/types/event";
 import GuestListPDF from "./GuestListPDF";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -22,12 +23,16 @@ interface PDFPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   guests: Guest[];
+  event?: Event;
+  eventGuests?: EventGuest[];
 }
 
 const PDFPreviewDialog = ({
   open,
   onOpenChange,
   guests,
+  event,
+  eventGuests,
 }: PDFPreviewDialogProps) => {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
@@ -65,10 +70,16 @@ const PDFPreviewDialog = ({
   });
 
   const handleDownload = async () => {
+    const fileName = event ? `guest-list-${event.name}.pdf` : "guest-list.pdf";
     const blob = await pdf(
-      <GuestListPDF guests={guests} customFields={customFields} />
+      <GuestListPDF 
+        guests={guests} 
+        customFields={customFields}
+        event={event}
+        eventGuests={eventGuests}
+      />
     ).toBlob();
-    saveAs(blob, "guest-list.pdf");
+    saveAs(blob, fileName);
   };
 
   if (!isClient) return null;
@@ -76,7 +87,9 @@ const PDFPreviewDialog = ({
   return (
     <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
       <DialogHeader>
-        <DialogTitle>Guest List Preview</DialogTitle>
+        <DialogTitle>
+          {event ? `Guest List for ${event.name}` : "Guest List Preview"}
+        </DialogTitle>
         <DialogDescription>
           Preview and download your guest list as a PDF.
         </DialogDescription>
@@ -98,7 +111,12 @@ const PDFPreviewDialog = ({
             border: "1px solid #e2e8f0",
           }}
         >
-          <GuestListPDF guests={guests} customFields={customFields} />
+          <GuestListPDF 
+            guests={guests} 
+            customFields={customFields}
+            event={event}
+            eventGuests={eventGuests}
+          />
         </PDFViewer>
       </div>
     </DialogContent>
