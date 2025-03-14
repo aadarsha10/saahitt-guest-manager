@@ -209,7 +209,7 @@ const EventList = ({ selectedEventId }: EventListProps) => {
           eventGuests[previewEvent.id]?.some(eg => eg.guest_id === g.id)
         ) : []}
         event={previewEvent || undefined}
-        eventGuests={previewEvent ? eventGuests[previewEvent.id] : undefined}
+        eventGuests={previewEvent ? eventGuests[previewEvent.id] : []}
       />
     </div>
   );

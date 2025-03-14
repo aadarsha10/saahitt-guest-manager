@@ -2,23 +2,24 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { GuestListPDF } from "./GuestListPDF";
 import { useToast } from "@/components/ui/use-toast";
 import { Guest } from "@/types/guest";
-import FileSaver from "file-saver";
+import { Event, EventGuest } from "@/types/event";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
-import { useMediaQuery } from "@/hooks/use-mobile";
+import GuestListPDF from "./GuestListPDF";
 
 interface PDFPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   guests: Guest[];
+  event?: Event;
+  eventGuests?: EventGuest[];
 }
 
-const PDFPreviewDialog = ({ open, onOpenChange, guests }: PDFPreviewDialogProps) => {
+const PDFPreviewDialog = ({ open, onOpenChange, guests, event, eventGuests }: PDFPreviewDialogProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
   const handleDownload = async () => {
     try {
@@ -46,8 +47,6 @@ const PDFPreviewDialog = ({ open, onOpenChange, guests }: PDFPreviewDialogProps)
     }
   };
 
-  if (!open) return null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
@@ -59,13 +58,23 @@ const PDFPreviewDialog = ({ open, onOpenChange, guests }: PDFPreviewDialogProps)
           <div className="space-y-4">
             <div className="border rounded-md bg-gray-50 overflow-auto" style={{ height: isMobile ? "300px" : "500px" }}>
               <PDFViewer width="100%" height="100%" style={{ border: "none" }}>
-                <GuestListPDF guests={guests} />
+                <GuestListPDF 
+                  guests={guests} 
+                  event={event}
+                  eventGuests={eventGuests || []}
+                />
               </PDFViewer>
             </div>
             
             <div className="flex justify-end">
               <PDFDownloadLink
-                document={<GuestListPDF guests={guests} />}
+                document={
+                  <GuestListPDF 
+                    guests={guests} 
+                    event={event}
+                    eventGuests={eventGuests || []}
+                  />
+                }
                 fileName={`guest-list-${new Date().toISOString().split('T')[0]}.pdf`}
                 className="inline-block"
               >
