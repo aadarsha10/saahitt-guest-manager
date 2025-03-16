@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Search,
   HelpCircle,
+  Upload,
 } from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -43,6 +44,7 @@ import { useGuestData } from "@/hooks/useGuestData";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import GuestDetailView from "./GuestDetailView";
+import BulkImportDialog from "./BulkImportDialog";
 import {
   Tooltip,
   TooltipContent,
@@ -80,6 +82,7 @@ const GuestList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const { toast } = useToast();
   const { guests, isLoading, isFetching, refetch, updateGuest } = useGuestData();
 
@@ -365,6 +368,14 @@ const GuestList = () => {
         <div className="flex space-x-2 ml-4">
           <Button
             variant="outline"
+            onClick={() => setBulkImportOpen(true)}
+            className="flex items-center"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            Import Guests
+          </Button>
+          <Button
+            variant="outline"
             size="icon"
             onClick={() => refetch()}
             disabled={isFetching}
@@ -560,6 +571,12 @@ const GuestList = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <BulkImportDialog 
+        open={bulkImportOpen} 
+        onOpenChange={setBulkImportOpen} 
+      />
 
       <PDFPreviewDialog
         open={pdfPreviewOpen}

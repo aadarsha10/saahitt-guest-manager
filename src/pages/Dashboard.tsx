@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Users, CalendarDays, Settings, ListFilter, BarChart4, CreditCard } from "lucide-react";
+import { PlusCircle, Users, CalendarDays, Settings, ListFilter, BarChart4, CreditCard, Upload } from "lucide-react";
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
@@ -20,6 +20,7 @@ import { PlanManagement } from "@/components/settings/PlanManagement";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DashboardHome from "@/components/dashboard/DashboardHome";
 import PlanManagementView from "@/components/dashboard/PlanManagementView";
+import BulkImportDialog from "@/components/guests/BulkImportDialog";
 
 // Define EventListProps interface
 interface EventListProps {
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [guestFormOpen, setGuestFormOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
@@ -224,19 +226,35 @@ const Dashboard = () => {
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Guest List</h2>
-                <Dialog open={guestFormOpen} onOpenChange={setGuestFormOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Guest
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <AddGuestForm onSuccess={() => {
-                      setGuestFormOpen(false);
-                    }} />
-                  </DialogContent>
-                </Dialog>
+                <div className="flex space-x-2">
+                  <Dialog open={bulkImportOpen} onOpenChange={setBulkImportOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex items-center">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Bulk Import
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <BulkImportDialog 
+                        open={bulkImportOpen} 
+                        onOpenChange={setBulkImportOpen} 
+                      />
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={guestFormOpen} onOpenChange={setGuestFormOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-[#FF6F00] hover:bg-[#FF6F00]/90">
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Guest
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <AddGuestForm onSuccess={() => {
+                        setGuestFormOpen(false);
+                      }} />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
               <GuestList />
             </div>
