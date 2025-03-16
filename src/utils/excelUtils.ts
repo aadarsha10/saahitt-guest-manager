@@ -2,16 +2,27 @@
 import * as XLSX from 'xlsx';
 import { NewGuest } from '@/types/guest';
 import { CustomField } from '@/types/custom-field';
+import { supabase } from '@/integrations/supabase/client';
 
 export const generateGuestTemplate = async () => {
   try {
-    // Fetch custom fields to include in the template
-    const { data: supabaseCustomFields, error } = await fetch('/api/custom-fields').then(res => res.json());
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error("Not authenticated");
+    }
+    
+    // Fetch custom fields directly from Supabase to include in the template
+    const { data: customFields, error } = await supabase
+      .from('custom_fields')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: true });
     
     let customFieldHeaders: string[] = [];
     
-    if (!error && supabaseCustomFields && supabaseCustomFields.length > 0) {
-      customFieldHeaders = supabaseCustomFields.map((field: CustomField) => `${field.name} (Custom)`);
+    if (!error && customFields && customFields.length > 0) {
+      customFieldHeaders = customFields.map((field: CustomField) => `${field.name} (Custom)`);
     }
     
     const headers = [
@@ -34,7 +45,7 @@ export const generateGuestTemplate = async () => {
     XLSX.writeFile(workbook, 'guest_template.xlsx');
   } catch (error) {
     console.error("Error generating template:", error);
-    // Fallback to basic template if API call fails
+    // Fallback to basic template if API call or authentication fails
     const headers = [
       'First Name*',
       'Last Name',
@@ -63,7 +74,9 @@ export const parseGuestFile = async (file: File): Promise<NewGuest[]> => {
 
   // Get custom field headers (those ending with " (Custom)")
   const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
-  const customFieldHeaders = headers.filter(header => header.endsWith(" (Custom)"));
+  const customFieldHeaders = headers.filter(header => 
+    typeof header === 'string' && header.endsWith(" (Custom)")
+  );
 
   return data.map(row => {
     // Extract custom values

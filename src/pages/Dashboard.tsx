@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Users, CalendarDays, Settings, ListFilter, BarChart4, CreditCard, Upload } from "lucide-react";
+import { PlusCircle, Users, CalendarDays, Settings, ListFilter, BarChart4, CreditCard, Download } from "lucide-react";
 import AddGuestForm from "@/components/guests/AddGuestForm";
 import GuestList from "@/components/guests/GuestList";
 import CategoryList from "@/components/categories/CategoryList";
@@ -40,7 +39,6 @@ const Dashboard = () => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [settingsSubView, setSettingsSubView] = useState("account");
   
-  // Get tab from URL hash if present
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     const validTabs = ["home", "guests", "categories", "events", "settings", "plans"];
@@ -48,7 +46,6 @@ const Dashboard = () => {
     if (hash && validTabs.includes(hash)) {
       setActiveTab(hash);
       
-      // Handle settings sub-views
       if (hash === "settings" && location.search) {
         const params = new URLSearchParams(location.search);
         const view = params.get('view');
@@ -58,24 +55,12 @@ const Dashboard = () => {
       }
     }
     
-    // Check if there was a selected event ID stored in localStorage
     const storedEventId = localStorage.getItem('selectedEventId');
     if (storedEventId) {
       setSelectedEventId(storedEventId);
       localStorage.removeItem('selectedEventId');
     }
   }, [location]);
-
-  // Update URL hash when tab changes
-  useEffect(() => {
-    if (activeTab) {
-      if (activeTab === "settings") {
-        window.history.replaceState(null, "", `#${activeTab}?view=${settingsSubView}`);
-      } else {
-        window.history.replaceState(null, "", `#${activeTab}`);
-      }
-    }
-  }, [activeTab, settingsSubView]);
 
   useEffect(() => {
     checkUser();
@@ -136,11 +121,9 @@ const Dashboard = () => {
     }
   };
 
-  // Enhanced tab change handler to handle event selection
   const handleTabChange = (value: string, eventId?: string) => {
     setActiveTab(value);
     
-    // Reset settings sub-view if changing away from settings
     if (value !== "settings") {
       setSettingsSubView("account");
     }
@@ -148,7 +131,6 @@ const Dashboard = () => {
     if (eventId) {
       setSelectedEventId(eventId);
       setTimeout(() => {
-        // Scroll to and highlight the event if we have its ID
         const eventElement = document.getElementById(`event-${eventId}`);
         if (eventElement) {
           eventElement.scrollIntoView({ behavior: 'smooth' });
@@ -161,7 +143,6 @@ const Dashboard = () => {
     }
   };
 
-  // Handle settings sub-view changes
   const handleSettingsSubViewChange = (view: string) => {
     setSettingsSubView(view);
     window.history.replaceState(null, "", `#settings?view=${view}`);
@@ -230,7 +211,7 @@ const Dashboard = () => {
                   <Dialog open={bulkImportOpen} onOpenChange={setBulkImportOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" className="flex items-center">
-                        <Upload className="h-4 w-4 mr-2" />
+                        <Download className="h-4 w-4 mr-2" />
                         Bulk Import
                       </Button>
                     </DialogTrigger>
@@ -305,7 +286,6 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           
-          {/* New dedicated Plans tab */}
           <TabsContent value="plans">
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
@@ -320,7 +300,6 @@ const Dashboard = () => {
               <div className="space-y-6 p-1">
                 <h2 className="text-2xl font-bold">Settings</h2>
                 
-                {/* Settings Sub-Navigation */}
                 <div className="flex border-b pb-2 mb-6">
                   <button 
                     className={`px-4 py-2 ${settingsSubView === 'account' ? 'border-b-2 border-[#FF6F00] text-[#FF6F00]' : 'text-gray-500'}`}
@@ -361,7 +340,6 @@ const Dashboard = () => {
         </Tabs>
       </div>
       
-      {/* Add highlight event styling */}
       <style>
         {`
         .highlight-event {

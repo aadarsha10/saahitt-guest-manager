@@ -83,64 +83,62 @@ const BulkImportDialog: React.FC<BulkImportDialogProps> = ({ open, onOpenChange 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Import Guests from Excel/CSV</DialogTitle>
-        </DialogHeader>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Import Guests from Excel/CSV</DialogTitle>
+      </DialogHeader>
+      
+      <div className="space-y-4 py-4">
+        {customFields.length > 0 && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Your account has {customFields.length} custom {customFields.length === 1 ? 'field' : 'fields'}.
+              The template includes these fields. Make sure to fill them correctly for your guests.
+            </AlertDescription>
+          </Alert>
+        )}
         
-        <div className="space-y-4 py-4">
-          {customFields.length > 0 && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Your account has {customFields.length} custom {customFields.length === 1 ? 'field' : 'fields'}.
-                The template includes these fields. Make sure to fill them correctly for your guests.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div>
-            <Button 
-              variant="outline" 
-              onClick={handleDownloadTemplate}
-              className="w-full"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download Template
-            </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="file">Upload Excel/CSV File</Label>
-            <Input
-              id="file"
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileChange}
-            />
-            <p className="text-sm text-gray-500">
-              {file ? `Selected file: ${file.name}` : "No file selected"}
-            </p>
-          </div>
-          
+        <div>
           <Button 
-            onClick={handleUpload} 
-            disabled={!file || uploading}
+            variant="outline" 
+            onClick={handleDownloadTemplate}
             className="w-full"
           >
-            {uploading ? (
-              <>Importing...</>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Import Guests
-              </>
-            )}
+            <Download className="mr-2 h-4 w-4" />
+            Download Template
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+        
+        <div className="space-y-2">
+          <Label htmlFor="file">Upload Excel/CSV File</Label>
+          <Input
+            id="file"
+            type="file"
+            accept=".xlsx,.xls,.csv,.vcf"
+            onChange={handleFileChange}
+          />
+          <p className="text-sm text-gray-500">
+            {file ? `Selected file: ${file.name}` : "No file selected"}
+          </p>
+        </div>
+        
+        <Button 
+          onClick={handleUpload} 
+          disabled={!file || uploading}
+          className="w-full"
+        >
+          {uploading ? (
+            <>Importing...</>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              Import Guests
+            </>
+          )}
+        </Button>
+      </div>
+    </DialogContent>
   );
 };
 
