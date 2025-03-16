@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Guest } from "@/types/guest";
 import { CustomField } from "@/types/custom-field";
@@ -52,7 +51,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Category colors for visual distinction
 const categoryColors = {
   Family: "bg-purple-100 text-purple-800 border-purple-200",
   Friends: "bg-blue-100 text-blue-800 border-blue-200",
@@ -86,7 +84,6 @@ const GuestList = () => {
   const { toast } = useToast();
   const { guests, isLoading, isFetching, refetch, updateGuest } = useGuestData();
 
-  // Fetch custom fields
   const { data: customFields = [], isLoading: isLoadingFields } = useQuery({
     queryKey: ["customFields"],
     queryFn: async () => {
@@ -114,7 +111,6 @@ const GuestList = () => {
     },
   });
 
-  // Fetch custom categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -150,7 +146,6 @@ const GuestList = () => {
     }
   };
 
-  // Search functionality
   const searchGuests = (guest: Guest) => {
     if (!searchQuery) return true;
 
@@ -163,7 +158,6 @@ const GuestList = () => {
     return nameMatch || emailMatch || phoneMatch;
   };
 
-  // Apply all filters and search
   const filteredGuests = guests.filter((guest) => {
     const filterMatch = Object.entries(filters).every(([field, value]) => {
       if (!value || value === "all") return true;
@@ -179,7 +173,6 @@ const GuestList = () => {
     return filterMatch && searchGuests(guest);
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredGuests.length / pageSize);
   const paginatedGuests = filteredGuests.slice(
     (currentPage - 1) * pageSize,
@@ -187,7 +180,6 @@ const GuestList = () => {
   );
 
   useEffect(() => {
-    // Reset to first page when filters or search changes
     setCurrentPage(1);
   }, [filters, searchQuery]);
 
@@ -214,16 +206,13 @@ const GuestList = () => {
     });
   };
 
-  // Function to get category color based on the category name
   const getCategoryColor = (category: string) => {
     if (category in categoryColors) {
       return categoryColors[category as keyof typeof categoryColors];
     }
-    // Return a default color for custom categories
     return "bg-indigo-100 text-indigo-800 border-indigo-200";
   };
 
-  // Helper component for filter label with tooltip
   const FilterLabel = ({ label, tooltip }: { label: string, tooltip: string }) => (
     <div className="flex items-center space-x-1">
       <span>{label}</span>
@@ -268,7 +257,6 @@ const GuestList = () => {
                   <SelectItem value="Family">Family</SelectItem>
                   <SelectItem value="Friends">Friends</SelectItem>
                   <SelectItem value="Work">Work</SelectItem>
-                  {/* Display custom categories */}
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.name}>
                       {category.name}
@@ -394,7 +382,6 @@ const GuestList = () => {
         </div>
       </div>
 
-      {/* Search and pagination controls */}
       <div className="flex justify-between items-center">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -520,41 +507,37 @@ const GuestList = () => {
         </Table>
       </div>
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-500">
-            Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredGuests.length)} of{" "}
-            {filteredGuests.length} entries
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="h-8 w-8"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-gray-500">
+          Showing {(currentPage - 1) * pageSize + 1} to{" "}
+          {Math.min(currentPage * pageSize, filteredGuests.length)} of{" "}
+          {filteredGuests.length} entries
         </div>
-      )}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      {/* Guest Detail Dialog */}
       <Dialog open={!!viewGuestId} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -572,11 +555,12 @@ const GuestList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Import Dialog */}
-      <BulkImportDialog 
-        open={bulkImportOpen} 
-        onOpenChange={setBulkImportOpen} 
-      />
+      <Dialog open={bulkImportOpen} onOpenChange={setBulkImportOpen}>
+        <BulkImportDialog 
+          open={bulkImportOpen} 
+          onOpenChange={setBulkImportOpen} 
+        />
+      </Dialog>
 
       <PDFPreviewDialog
         open={pdfPreviewOpen}

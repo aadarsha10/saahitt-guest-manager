@@ -21,7 +21,6 @@ import DashboardHome from "@/components/dashboard/DashboardHome";
 import PlanManagementView from "@/components/dashboard/PlanManagementView";
 import BulkImportDialog from "@/components/guests/BulkImportDialog";
 
-// Define EventListProps interface
 interface EventListProps {
   selectedEventId: string | null;
 }
@@ -208,19 +207,17 @@ const Dashboard = () => {
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Guest List</h2>
                 <div className="flex space-x-2">
-                  <Dialog open={bulkImportOpen} onOpenChange={setBulkImportOpen}>
+                  <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline" className="flex items-center">
                         <Download className="h-4 w-4 mr-2" />
                         Bulk Import
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                      <BulkImportDialog 
-                        open={bulkImportOpen} 
-                        onOpenChange={setBulkImportOpen} 
-                      />
-                    </DialogContent>
+                    <BulkImportDialog 
+                      open={bulkImportOpen} 
+                      onOpenChange={setBulkImportOpen} 
+                    />
                   </Dialog>
                   <Dialog open={guestFormOpen} onOpenChange={setGuestFormOpen}>
                     <DialogTrigger asChild>
