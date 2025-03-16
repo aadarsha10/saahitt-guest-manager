@@ -35,7 +35,6 @@ import {
   ChevronRight,
   Search,
   HelpCircle,
-  Upload,
 } from "lucide-react";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -354,14 +353,6 @@ const GuestList = () => {
             ))}
         </div>
         <div className="flex space-x-2 ml-4">
-          <Button
-            variant="outline"
-            onClick={() => setBulkImportOpen(true)}
-            className="flex items-center"
-          >
-            <Upload className="h-4 w-4 mr-1.5" />
-            Import Guests
-          </Button>
           <Button
             variant="outline"
             size="icon"
