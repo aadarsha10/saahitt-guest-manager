@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -38,14 +38,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const isAuthenticated = !!session;
-        console.log("Auth check result:", isAuthenticated ? "authenticated" : "not authenticated");
-        setAuthenticated(isAuthenticated);
+        
+        if (session) {
+          // Check if session is older than 24 hours
+          const sessionCreatedAt = new Date(session.created_at).getTime();
+          const currentTime = new Date().getTime();
+          const dayInMs = 24 * 60 * 60 * 1000;
+          
+          if (currentTime - sessionCreatedAt > dayInMs) {
+            // Session expired, sign out and redirect to auth page with expired flag
+            console.log("Session expired (older than 24 hours). Signing out...");
+            await supabase.auth.signOut();
+            setAuthenticated(false);
+            setLoading(false);
+            navigate('/auth?expired=true', { replace: true });
+            return;
+          }
+          
+          // Valid session
+          setAuthenticated(true);
+        } else {
+          setAuthenticated(false);
+        }
         setLoading(false);
       } catch (error) {
         console.error("Auth check error:", error);
@@ -71,7 +91,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         try {
           // Get the latest session state
           const { data } = await supabase.auth.getSession();
-          setAuthenticated(!!data.session);
+          
+          if (data.session) {
+            // Check session age for expiration
+            const sessionCreatedAt = new Date(data.session.created_at).getTime();
+            const currentTime = new Date().getTime();
+            const dayInMs = 24 * 60 * 60 * 1000;
+            
+            if (currentTime - sessionCreatedAt > dayInMs) {
+              // Session expired, sign out and redirect
+              console.log("Session expired during auth state change. Signing out...");
+              await supabase.auth.signOut();
+              setAuthenticated(false);
+              navigate('/auth?expired=true', { replace: true });
+            } else {
+              setAuthenticated(true);
+            }
+          } else {
+            setAuthenticated(false);
+          }
         } catch (error) {
           console.error("Error checking session after auth state change:", error);
           setAuthenticated(false);
@@ -84,7 +122,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   if (loading) {
     return (

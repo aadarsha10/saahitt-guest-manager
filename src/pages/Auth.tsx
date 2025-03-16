@@ -28,15 +28,51 @@ const Auth = () => {
     return redirect ? decodeURIComponent(redirect) : "/dashboard";
   };
 
+  // Parse URL params to determine initial tab and check for session expiry message
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get("tab");
+    const expired = searchParams.get("expired");
+    
+    if (tab) {
+      setActiveTab(tab === "signup" ? "signup" : "signin");
+    }
+    
+    if (expired === "true") {
+      toast({
+        title: "Session Expired",
+        description: "Your session has expired. Please sign in again to continue.",
+        variant: "destructive",
+      });
+    }
+  }, [location, toast]);
+
   // Check for existing session on component mount and redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
         if (session) {
-          const redirectPath = getRedirectPath();
-          console.log("User is already logged in, redirecting to:", redirectPath);
-          navigate(redirectPath, { replace: true });
+          // Check if session is older than 24 hours
+          const sessionCreatedAt = new Date(session.created_at).getTime();
+          const currentTime = new Date().getTime();
+          const dayInMs = 24 * 60 * 60 * 1000;
+          
+          if (currentTime - sessionCreatedAt > dayInMs) {
+            // Session expired, sign out and show message
+            await supabase.auth.signOut();
+            toast({
+              title: "Session Expired",
+              description: "Your session has expired. Please sign in again to continue.",
+              variant: "destructive",
+            });
+          } else {
+            // Valid session, redirect
+            const redirectPath = getRedirectPath();
+            console.log("User is already logged in, redirecting to:", redirectPath);
+            navigate(redirectPath, { replace: true });
+          }
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -44,9 +80,9 @@ const Auth = () => {
     };
     
     checkSession();
-  }, [navigate, location.search]);
+  }, [navigate, location.search, toast]);
 
-  // Set up auth state change listener with improved error handling
+  // Set up auth state change listener with improved error handling and session expiry check
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -71,6 +107,16 @@ const Auth = () => {
               description: "There was a problem redirecting you. Please try refreshing the page.",
             });
           }
+        } else if (event === "SIGNED_OUT") {
+          // Check if it was due to session expiry
+          const searchParams = new URLSearchParams(location.search);
+          if (searchParams.get("expired") === "true") {
+            toast({
+              title: "Session Expired",
+              description: "Your session has expired. Please sign in again to continue.",
+              variant: "destructive",
+            });
+          }
         }
       }
     );
@@ -79,15 +125,6 @@ const Auth = () => {
       subscription.unsubscribe();
     };
   }, [navigate, location.search, toast]);
-
-  // Parse URL params to determine initial tab
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const tab = searchParams.get("tab");
-    if (tab) {
-      setActiveTab(tab === "signup" ? "signup" : "signin");
-    }
-  }, [location]);
 
   const [activeTab, setActiveTab] = useState("signin");
 
