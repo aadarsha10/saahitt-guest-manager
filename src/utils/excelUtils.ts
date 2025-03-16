@@ -1,7 +1,7 @@
 
 import * as XLSX from 'xlsx';
 import { NewGuest } from '@/types/guest';
-import { CustomField } from '@/types/custom-field';
+import { CustomField, CustomFieldType } from '@/types/custom-field';
 import { supabase } from '@/integrations/supabase/client';
 
 export const generateGuestTemplate = async () => {
@@ -13,7 +13,7 @@ export const generateGuestTemplate = async () => {
     }
     
     // Fetch custom fields directly from Supabase to include in the template
-    const { data: customFields, error } = await supabase
+    const { data: customFieldsData, error } = await supabase
       .from('custom_fields')
       .select('*')
       .eq('user_id', session.user.id)
@@ -21,7 +21,14 @@ export const generateGuestTemplate = async () => {
     
     let customFieldHeaders: string[] = [];
     
-    if (!error && customFields && customFields.length > 0) {
+    if (!error && customFieldsData && customFieldsData.length > 0) {
+      // Properly cast the field_type to CustomFieldType
+      const customFields: CustomField[] = customFieldsData.map(field => ({
+        ...field,
+        field_type: field.field_type as CustomFieldType,
+        options: field.options as string[] || []
+      }));
+      
       customFieldHeaders = customFields.map((field: CustomField) => `${field.name} (Custom)`);
     }
     
