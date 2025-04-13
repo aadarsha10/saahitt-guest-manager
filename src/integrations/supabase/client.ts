@@ -26,9 +26,10 @@ export const supabase = createClient<Database>(
 
 // Handle session refresh and expiry
 supabase.auth.onAuthStateChange((event, session) => {
-  // Check if session exists and when it was created
+  // Check if session exists
   if (session) {
-    const sessionCreatedAt = new Date(session.created_at).getTime();
+    // Use auth.signedAt instead of session.created_at
+    const sessionCreatedAt = new Date(session.user.aud === 'authenticated' ? session.user.created_at : Date.now()).getTime();
     const currentTime = new Date().getTime();
     const dayInMs = 24 * 60 * 60 * 1000;
     

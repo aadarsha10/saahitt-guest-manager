@@ -15,7 +15,10 @@ export type Guest = {
   custom_values: Json;
   created_at: string;
   updated_at: string;
+  invited_at?: string;
+  rsvp_status?: 'pending' | 'accepted' | 'declined';
+  rsvp_at?: string;
+  rsvp_details?: Json;
 };
 
 export type NewGuest = Omit<Guest, 'id' | 'created_at' | 'updated_at'>;
-

@@ -23,6 +23,7 @@ import GuestCategoriesArticle from "./pages/help/GuestCategoriesArticle";
 import TrackRSVPsArticle from "./pages/help/TrackRSVPsArticle";
 import PrintListsArticle from "./pages/help/PrintListsArticle";
 import UpgradePlanArticle from "./pages/help/UpgradePlanArticle";
+import RSVP from "./pages/RSVP";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -46,8 +47,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          // Check if session is older than 24 hours
-          const sessionCreatedAt = new Date(session.created_at).getTime();
+          // Check if session is older than 24 hours using user.created_at
+          const sessionCreatedAt = new Date(session.user.aud === 'authenticated' ? session.user.created_at : Date.now()).getTime();
           const currentTime = new Date().getTime();
           const dayInMs = 24 * 60 * 60 * 1000;
           
@@ -93,8 +94,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           const { data } = await supabase.auth.getSession();
           
           if (data.session) {
-            // Check session age for expiration
-            const sessionCreatedAt = new Date(data.session.created_at).getTime();
+            // Check session age for expiration using user.created_at
+            const sessionCreatedAt = new Date(data.session.user.aud === 'authenticated' ? data.session.user.created_at : Date.now()).getTime();
             const currentTime = new Date().getTime();
             const dayInMs = 24 * 60 * 60 * 1000;
             
@@ -156,6 +157,7 @@ const App = () => {
             <Route path="/help" element={<Help />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/email-support" element={<EmailSupport />} />
+            <Route path="/rsvp/:token" element={<RSVP />} />
             
             {/* Help Articles */}
             <Route path="/help/article/import-guests" element={<ImportGuestsArticle />} />

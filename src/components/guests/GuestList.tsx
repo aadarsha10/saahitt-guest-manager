@@ -70,6 +70,12 @@ const statusColors = {
   Pending: "bg-gray-100 text-gray-800",
 };
 
+const rsvpStatusColors = {
+  accepted: "bg-green-100 text-green-800 border-green-200",
+  declined: "bg-red-100 text-red-800 border-red-200",
+  pending: "bg-gray-100 text-gray-800 border-gray-200",
+};
+
 const GuestList = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -163,6 +169,16 @@ const GuestList = () => {
 
       if (field === "category" || field === "priority" || field === "status") {
         return guest[field] === value;
+      }
+      
+      if (field === "rsvp_status") {
+        return guest.rsvp_status === value;
+      }
+
+      if (field === "invited") {
+        if (value === "yes") return !!guest.invited_at;
+        if (value === "no") return !guest.invited_at;
+        return true;
       }
 
       const customValue = guest.custom_values?.[field];
@@ -322,6 +338,59 @@ const GuestList = () => {
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label>
+              <FilterLabel 
+                label="RSVP Status" 
+                tooltip="Filter by RSVP response: Accepted, Declined, or Pending"
+              />
+            </Label>
+            {loading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.rsvp_status || "all"}
+                onValueChange={(value) => handleFilterChange("rsvp_status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All RSVP Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All RSVP Statuses</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              <FilterLabel 
+                label="Invited" 
+                tooltip="Filter by invitation status"
+              />
+            </Label>
+            {loading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.invited || "all"}
+                onValueChange={(value) => handleFilterChange("invited", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Guests" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Guests</SelectItem>
+                  <SelectItem value="yes">Invited</SelectItem>
+                  <SelectItem value="no">Not Invited</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
           {!loading &&
             customFields.map((field) => (
               <div key={field.id} className="space-y-2">
@@ -415,6 +484,8 @@ const GuestList = () => {
               <TableHead>Category</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Invitation</TableHead>
+              <TableHead>RSVP</TableHead>
               {customFields.map((field) => (
                 <TableHead key={field.id}>{field.name}</TableHead>
               ))}
@@ -429,6 +500,12 @@ const GuestList = () => {
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-5 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-20" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-5 w-20" />
@@ -477,6 +554,29 @@ const GuestList = () => {
                       {guest.status}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {guest.invited_at ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-800">
+                        Sent {new Date(guest.invited_at).toLocaleDateString()}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-800">
+                        Not Sent
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {guest.rsvp_status && guest.rsvp_status !== 'pending' ? (
+                      <Badge className={rsvpStatusColors[guest.rsvp_status as keyof typeof rsvpStatusColors]}>
+                        {guest.rsvp_status === 'accepted' ? 'Accepted' : 'Declined'}
+                        {guest.rsvp_at && ` (${new Date(guest.rsvp_at).toLocaleDateString()})`}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-500">
+                        Pending
+                      </Badge>
+                    )}
+                  </TableCell>
                   {customFields.map((field) => (
                     <TableCell key={field.id}>
                       {String(guest.custom_values[field.name] || "-")}
@@ -487,7 +587,7 @@ const GuestList = () => {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={5 + customFields.length}
+                  colSpan={7 + customFields.length}
                   className="text-center py-8"
                 >
                   No guests found matching the selected filters.
@@ -500,7 +600,7 @@ const GuestList = () => {
 
       <div className="flex justify-between items-center mt-4">
         <div className="text-sm text-gray-500">
-          Showing {(currentPage - 1) * pageSize + 1} to{" "}
+          Showing {filteredGuests.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
           {Math.min(currentPage * pageSize, filteredGuests.length)} of{" "}
           {filteredGuests.length} entries
         </div>
@@ -515,13 +615,13 @@ const GuestList = () => {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm">
-            Page {currentPage} of {totalPages}
+            Page {currentPage} of {Math.max(1, totalPages)}
           </span>
           <Button
             variant="outline"
             size="icon"
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
             className="h-8 w-8"
           >
             <ChevronRight className="h-4 w-4" />

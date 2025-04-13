@@ -55,7 +55,7 @@ const Auth = () => {
         
         if (session) {
           // Check if session is older than 24 hours
-          const sessionCreatedAt = new Date(session.created_at).getTime();
+          const sessionCreatedAt = new Date(session.user.aud === 'authenticated' ? session.user.created_at : Date.now()).getTime();
           const currentTime = new Date().getTime();
           const dayInMs = 24 * 60 * 60 * 1000;
           
