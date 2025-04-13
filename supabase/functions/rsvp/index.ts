@@ -8,12 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface RSVPRequest {
-  attending: boolean;
-  guestsCount?: number;
-  notes?: string;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -26,29 +20,159 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Get token from URL
+    // Get the path segments from the URL
     const url = new URL(req.url);
     const pathSegments = url.pathname.split('/');
+    
+    // The token should be the last segment in the path
     const token = pathSegments[pathSegments.length - 1];
     
     if (!token) {
       return new Response(
-        JSON.stringify({ error: "Missing token" }),
+        JSON.stringify({ error: "Invalid invitation token" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // If this is a GET request, just verify the token and return guest & event data
+    // For GET requests, return the event and guest details
     if (req.method === "GET") {
-      return await handleGetRequest(supabase, token);
+      // Look up the token in the database
+      const { data: tokenData, error: tokenError } = await supabase
+        .from("rsvp_tokens")
+        .select("guest_id, event_id, expires_at")
+        .eq("token", token)
+        .single();
+      
+      if (tokenError || !tokenData) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired invitation token" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Check if token is expired
+      const now = new Date();
+      const expiryDate = new Date(tokenData.expires_at);
+      
+      if (now > expiryDate) {
+        return new Response(
+          JSON.stringify({ error: "This invitation has expired" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Get guest details
+      const { data: guest, error: guestError } = await supabase
+        .from("guests")
+        .select("id, first_name, last_name, email, rsvp_status, rsvp_details")
+        .eq("id", tokenData.guest_id)
+        .single();
+      
+      if (guestError || !guest) {
+        return new Response(
+          JSON.stringify({ error: "Could not find guest" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Get event details
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .select("id, name, date, description")
+        .eq("id", tokenData.event_id)
+        .single();
+      
+      if (eventError || !event) {
+        return new Response(
+          JSON.stringify({ error: "Could not find event" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Return the guest and event data
+      return new Response(
+        JSON.stringify({
+          guest: {
+            id: guest.id,
+            name: `${guest.first_name} ${guest.last_name || ''}`.trim(),
+            email: guest.email,
+            rsvpStatus: guest.rsvp_status,
+            rsvpDetails: guest.rsvp_details
+          },
+          event,
+          token
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    // If this is a POST request, update RSVP status
+    // For POST requests, update the RSVP status
     if (req.method === "POST") {
-      const { attending, guestsCount, notes }: RSVPRequest = await req.json();
-      return await handlePostRequest(supabase, token, { attending, guestsCount, notes });
+      // Get request body
+      const { attending, guestsCount, notes } = await req.json();
+      
+      // Look up the token in the database
+      const { data: tokenData, error: tokenError } = await supabase
+        .from("rsvp_tokens")
+        .select("guest_id, event_id, expires_at, used_at")
+        .eq("token", token)
+        .single();
+      
+      if (tokenError || !tokenData) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired invitation token" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Check if token is expired
+      const now = new Date();
+      const expiryDate = new Date(tokenData.expires_at);
+      
+      if (now > expiryDate) {
+        return new Response(
+          JSON.stringify({ error: "This invitation has expired" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Update the guest's RSVP status
+      const { error: updateError } = await supabase
+        .from("guests")
+        .update({
+          rsvp_status: attending ? "accepted" : "declined",
+          rsvp_at: new Date().toISOString(),
+          rsvp_details: {
+            guestsCount: attending ? guestsCount : 0,
+            notes
+          }
+        })
+        .eq("id", tokenData.guest_id);
+      
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to update RSVP status", details: updateError }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Mark the token as used
+      await supabase
+        .from("rsvp_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("token", token);
+      
+      // Return success
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: attending ? "Thank you for accepting the invitation!" : "Thank you for your response."
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
+    // Any other method is not allowed
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
       { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -62,164 +186,3 @@ serve(async (req) => {
     );
   }
 });
-
-async function handleGetRequest(supabase: any, token: string) {
-  try {
-    // Get token entry from database
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("rsvp_tokens")
-      .select("*")
-      .eq("token", token)
-      .single();
-    
-    if (tokenError || !tokenData) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Check if token is expired
-    if (new Date(tokenData.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "Token has expired" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Get guest and event data
-    const { data: guest, error: guestError } = await supabase
-      .from("guests")
-      .select("*")
-      .eq("id", tokenData.guest_id)
-      .single();
-      
-    const { data: event, error: eventError } = await supabase
-      .from("events")
-      .select("*")
-      .eq("id", tokenData.event_id)
-      .single();
-      
-    if (guestError || !guest || eventError || !event) {
-      return new Response(
-        JSON.stringify({ error: "Could not find guest or event data" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Return guest and event data
-    return new Response(
-      JSON.stringify({ 
-        guest: {
-          id: guest.id,
-          name: `${guest.first_name} ${guest.last_name || ''}`.trim(),
-          email: guest.email,
-          rsvpStatus: guest.rsvp_status,
-          rsvpDetails: guest.rsvp_details
-        }, 
-        event: {
-          id: event.id,
-          name: event.name,
-          date: event.date,
-          description: event.description
-        },
-        token: token
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-    
-  } catch (error) {
-    console.error("Error verifying token:", error);
-    return new Response(
-      JSON.stringify({ error: "Error verifying token" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-}
-
-async function handlePostRequest(supabase: any, token: string, { attending, guestsCount, notes }: RSVPRequest) {
-  try {
-    // Get token entry from database
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("rsvp_tokens")
-      .select("*")
-      .eq("token", token)
-      .single();
-    
-    if (tokenError || !tokenData) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Check if token is expired
-    if (new Date(tokenData.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "Token has expired" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Check if token is already used
-    if (tokenData.used_at) {
-      return new Response(
-        JSON.stringify({ 
-          error: "RSVP already submitted",
-          message: "You have already submitted your RSVP. If you need to make changes, please contact the event organizer."
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Update guest RSVP status
-    const rsvpStatus = attending ? 'accepted' : 'declined';
-    const rsvpDetails = {
-      guestsCount: attending ? (guestsCount || 1) : 0,
-      notes: notes || ''
-    };
-    
-    const { error: updateError } = await supabase
-      .from("guests")
-      .update({ 
-        rsvp_status: rsvpStatus,
-        rsvp_at: new Date().toISOString(),
-        rsvp_details: rsvpDetails
-      })
-      .eq("id", tokenData.guest_id);
-      
-    if (updateError) {
-      console.error("Error updating guest RSVP:", updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to update RSVP status" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Mark token as used
-    const { error: tokenUpdateError } = await supabase
-      .from("rsvp_tokens")
-      .update({ used_at: new Date().toISOString() })
-      .eq("id", tokenData.id);
-      
-    if (tokenUpdateError) {
-      console.error("Error updating token status:", tokenUpdateError);
-      // Don't fail the request as the RSVP was updated
-    }
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        message: `Thank you for your response. Your RSVP has been ${rsvpStatus}.`
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-    
-  } catch (error) {
-    console.error("Error processing RSVP:", error);
-    return new Response(
-      JSON.stringify({ error: "Error processing RSVP" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-}
