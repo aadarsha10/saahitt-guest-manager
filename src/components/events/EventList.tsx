@@ -17,7 +17,7 @@ import EventGuestManager from "./EventGuestManager";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useEventData } from "@/hooks/useEventData";
 import { useEventGuests } from "@/hooks/useEventGuests";
-import { Guest } from "@/types/guest";
+import { Guest, RsvpStatus } from "@/types/guest";
 import { mapStatusToRsvp } from "@/utils/rsvpMapper";
 
 interface EventListProps {
@@ -69,7 +69,7 @@ const EventList = ({ selectedEventId }: EventListProps) => {
       .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
       .map(guest => ({
         ...guest,
-        rsvp_status: guest.rsvp_status || mapStatusToRsvp(guest.status as Guest['status']),
+        rsvp_status: (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']),
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
         custom_values: guest.custom_values || {},

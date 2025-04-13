@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewGuest } from "@/types/guest";
@@ -22,6 +21,7 @@ import { HelpCircle, Plus, Trash2 } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { mapStatusToRsvp } from "@/utils/rsvpMapper";
 
 interface AddGuestFormProps {
   onSuccess: () => void;
@@ -44,7 +44,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
   const { addGuests } = useGuestData();
   const { categories } = useCategories();
   
-  // Fetch custom fields
   const { data: customFields = [] } = useQuery({
     queryKey: ["customFields"],
     queryFn: async () => {
@@ -85,7 +84,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
     const updatedGuests = [...guests];
     const guestToUpdate = updatedGuests[index];
     
-    // Create a new object for custom_values if it doesn't exist or is null
     const customValues = typeof guestToUpdate.custom_values === 'object' && guestToUpdate.custom_values !== null
       ? guestToUpdate.custom_values
       : {};
@@ -117,7 +115,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
 
   const removeGuestField = (index: number) => {
     if (guests.length === 1) {
-      // Don't remove the last guest field, just reset it
       setGuests([{
         first_name: "",
         last_name: "",
@@ -142,7 +139,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No authenticated user");
 
-      // Validate guests have first names
       const invalidGuests = guests.filter(g => !g.first_name);
       if (invalidGuests.length > 0) {
         toast({
@@ -179,7 +175,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
     }
   };
 
-  // Helper component for field label with tooltip
   const FieldLabel = ({ label, tooltip }: { label: string, tooltip: string }) => (
     <div className="flex items-center space-x-1">
       <span>{label}</span>
@@ -313,7 +308,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
                     <SelectItem value="Family">Family</SelectItem>
                     <SelectItem value="Friends">Friends</SelectItem>
                     <SelectItem value="Work">Work</SelectItem>
-                    {/* Display custom categories */}
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.name}>
                         {category.name}
@@ -388,7 +382,6 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
               />
             </div>
 
-            {/* Custom Fields Section */}
             {customFields.length > 0 && (
               <div className="space-y-3 mt-3">
                 <h3 className="text-md font-medium">Custom Fields</h3>
