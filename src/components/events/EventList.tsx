@@ -18,6 +18,7 @@ import EventGuestManager from "./EventGuestManager";
 import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useEventData } from "@/hooks/useEventData";
 import { useEventGuests } from "@/hooks/useEventGuests";
+import { Guest } from "@/types/guest";
 
 interface EventListProps {
   selectedEventId?: string | null;
@@ -65,6 +66,19 @@ const EventList = ({ selectedEventId }: EventListProps) => {
   if (isLoading) {
     return <div>Loading events...</div>;
   }
+
+  // Helper function to correctly type the guests for an event
+  const getTypedGuestsForEvent = (eventId: string): Guest[] => {
+    return guests
+      .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
+      .map(guest => ({
+        ...guest,
+        rsvp_status: (guest.rsvp_status || 'pending') as Guest['rsvp_status'],
+        priority: guest.priority as Guest['priority'],
+        status: guest.status as Guest['status'],
+        custom_values: guest.custom_values || {},
+      }));
+  };
 
   return (
     <div className="space-y-6">
@@ -205,9 +219,7 @@ const EventList = ({ selectedEventId }: EventListProps) => {
       <PDFPreviewDialog
         open={pdfPreviewOpen}
         onOpenChange={setPdfPreviewOpen}
-        guests={previewEvent ? guests.filter(g => 
-          eventGuests[previewEvent.id]?.some(eg => eg.guest_id === g.id)
-        ) : []}
+        guests={previewEvent ? getTypedGuestsForEvent(previewEvent.id) : []}
         event={previewEvent || undefined}
         eventGuests={previewEvent ? eventGuests[previewEvent.id] : []}
       />

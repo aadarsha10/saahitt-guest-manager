@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Guest, NewGuest } from "@/types/guest";
@@ -42,7 +43,7 @@ export function useGuestData() {
         ...guest,
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
-        rsvp_status: guest.rsvp_status as Guest['rsvp_status'],
+        rsvp_status: (guest.rsvp_status || 'pending') as Guest['rsvp_status'],
         custom_values: guest.custom_values || {},
       }));
     },
@@ -69,7 +70,7 @@ export function useGuestData() {
       ...data,
       priority: data.priority as Guest['priority'],
       status: data.status as Guest['status'],
-      rsvp_status: data.rsvp_status as Guest['rsvp_status'],
+      rsvp_status: (data.rsvp_status || 'pending') as Guest['rsvp_status'],
       custom_values: data.custom_values || {},
     };
   };

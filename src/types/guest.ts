@@ -16,7 +16,7 @@ export type Guest = {
   created_at: string;
   updated_at: string;
   invited_at?: string;
-  rsvp_status?: 'pending' | 'accepted' | 'declined';
+  rsvp_status: 'pending' | 'accepted' | 'declined';
   rsvp_at?: string;
   rsvp_details?: Json;
 };
