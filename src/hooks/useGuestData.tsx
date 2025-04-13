@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Guest, NewGuest } from "@/types/guest";
@@ -43,6 +42,7 @@ export function useGuestData() {
         ...guest,
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
+        rsvp_status: guest.rsvp_status as Guest['rsvp_status'],
         custom_values: guest.custom_values || {},
       }));
     },
@@ -69,6 +69,7 @@ export function useGuestData() {
       ...data,
       priority: data.priority as Guest['priority'],
       status: data.status as Guest['status'],
+      rsvp_status: data.rsvp_status as Guest['rsvp_status'],
       custom_values: data.custom_values || {},
     };
   };
@@ -76,13 +77,11 @@ export function useGuestData() {
   const addGuests = useMutation({
     mutationFn: async (newGuests: NewGuest[]) => {
       try {
-        // Get current session
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           throw new Error("User not authenticated");
         }
         
-        // Get user's plan type from profiles
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('plan_type')
@@ -91,13 +90,10 @@ export function useGuestData() {
             
         if (profileError) {
           console.error("Error fetching profile:", profileError);
-          // Default to free plan if profile not found
           const defaultPlanType = 'free';
           
-          // Get plan configuration
           const defaultPlanConfig = getPlanById(defaultPlanType);
           
-          // Get current guest count
           const { count, error: countError } = await supabase
             .from('guests')
             .select('*', { count: 'exact', head: true })
@@ -108,16 +104,13 @@ export function useGuestData() {
           const currentCount = count || 0;
           const totalAfterAdd = currentCount + newGuests.length;
             
-          // Apply default limit
           if (totalAfterAdd > defaultPlanConfig.guest_limit) {
             throw new Error(`Free plan is limited to ${defaultPlanConfig.guest_limit} guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
           }
         } else {
-          // Profile found, get plan configuration for user's plan type
           const planType = profileData.plan_type;
           const planConfig = getPlanById(planType);
           
-          // Get current guest count
           const { count, error: countError } = await supabase
             .from('guests')
             .select('*', { count: 'exact', head: true })
@@ -128,20 +121,17 @@ export function useGuestData() {
           const currentCount = count || 0;
           const totalAfterAdd = currentCount + newGuests.length;
             
-          // Apply limit based on plan configuration
           if (totalAfterAdd > planConfig.guest_limit) {
             throw new Error(`Your ${planConfig.name} is limited to ${planConfig.guest_limit} guests. You currently have ${currentCount} guests. Please upgrade to add more.`);
           }
         }
         
-        // Prepare guests with user_id and ensure custom_values is an object
         const guestsWithUserId = newGuests.map(guest => ({
           ...guest,
           user_id: session.user.id,
           custom_values: guest.custom_values || {},
         }));
         
-        // Insert guests
         const { error } = await supabase
           .from('guests')
           .insert(guestsWithUserId);
@@ -172,7 +162,6 @@ export function useGuestData() {
 
   const updateGuest = useMutation({
     mutationFn: async (guest: Guest) => {
-      // Ensure custom_values is an object, not null or undefined
       const updatedGuest = {
         ...guest,
         custom_values: guest.custom_values || {}
@@ -230,7 +219,6 @@ export function useGuestData() {
     },
   });
 
-  // Get statistics on guests by category
   const getGuestStatsByCategory = () => {
     const categoryStats: Record<string, number> = {};
     
@@ -246,7 +234,6 @@ export function useGuestData() {
     return categoryStats;
   };
 
-  // Get statistics on guests by custom field value
   const getGuestStatsByCustomField = (fieldName: string) => {
     const valueStats: Record<string, number> = {};
     

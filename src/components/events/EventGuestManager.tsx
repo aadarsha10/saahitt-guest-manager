@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Mail, MessageSquare, Phone, UserCircle, MoreHorizontal, CheckCircle, UserPlus } from "lucide-react";
+import InviteDialog from "./InviteDialog";
 
 interface EventGuestManagerProps {
   event: { id: string; name: string };
