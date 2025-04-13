@@ -1,6 +1,8 @@
 
 import { Json } from "@/integrations/supabase/types";
 
+export type RsvpStatus = "pending" | "accepted" | "declined";
+
 export type Guest = {
   id: string;
   user_id: string;
@@ -16,7 +18,7 @@ export type Guest = {
   created_at: string;
   updated_at: string;
   invited_at?: string;
-  rsvp_status: 'pending' | 'accepted' | 'declined';
+  rsvp_status?: RsvpStatus; // Make it optional for backward compatibility
   rsvp_at?: string;
   rsvp_details?: Json;
 };

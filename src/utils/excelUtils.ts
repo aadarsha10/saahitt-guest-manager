@@ -1,8 +1,8 @@
-
 import * as XLSX from 'xlsx';
 import { NewGuest } from '@/types/guest';
 import { CustomField, CustomFieldType } from '@/types/custom-field';
 import { supabase } from '@/integrations/supabase/client';
+import { mapStatusToRsvp } from '@/utils/rsvpMapper';
 
 export const generateGuestTemplate = async () => {
   try {
@@ -96,6 +96,8 @@ export const parseGuestFile = async (file: File): Promise<NewGuest[]> => {
       }
     });
 
+    const status = (row['Status'] || 'Pending') as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending';
+
     return {
       user_id: '', // Will be set by the component
       first_name: row['First Name*'] || '',
@@ -104,9 +106,10 @@ export const parseGuestFile = async (file: File): Promise<NewGuest[]> => {
       phone: row['Phone'] || '',
       category: row['Category'] || 'Others',
       priority: (row['Priority'] || 'Medium') as 'High' | 'Medium' | 'Low',
-      status: (row['Status'] || 'Pending') as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending',
+      status: status,
       notes: row['Notes'] || '',
-      custom_values
+      custom_values,
+      rsvp_status: mapStatusToRsvp(status)
     };
   });
 };

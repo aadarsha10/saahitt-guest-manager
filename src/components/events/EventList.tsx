@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Event } from "@/types/event";
 import {
@@ -19,6 +18,7 @@ import PDFPreviewDialog from "../pdf/PDFPreviewDialog";
 import { useEventData } from "@/hooks/useEventData";
 import { useEventGuests } from "@/hooks/useEventGuests";
 import { Guest } from "@/types/guest";
+import { mapStatusToRsvp } from "@/utils/rsvpMapper";
 
 interface EventListProps {
   selectedEventId?: string | null;
@@ -33,13 +33,11 @@ const EventList = ({ selectedEventId }: EventListProps) => {
   const { events, isLoading, updateEvent, deleteEvent } = useEventData();
   const { guests, eventGuests, fetchGuests, fetchEventGuests, handleGuestToggle, handleBulkGuestToggle, updateInviteStatus } = useEventGuests();
 
-  // Select event if selectedEventId is provided
   useEffect(() => {
     if (selectedEventId && events.length > 0) {
       const event = events.find(e => e.id === selectedEventId);
       if (event) {
         setSelectedEvent(event);
-        // Scroll to the event row when component is mounted
         setTimeout(() => {
           const element = document.getElementById(`event-${event.id}`);
           if (element) {
@@ -52,7 +50,6 @@ const EventList = ({ selectedEventId }: EventListProps) => {
     }
   }, [selectedEventId, events]);
 
-  // Fetch guests and event guests on component mount
   useEffect(() => {
     fetchGuests();
     fetchEventGuests();
@@ -67,13 +64,12 @@ const EventList = ({ selectedEventId }: EventListProps) => {
     return <div>Loading events...</div>;
   }
 
-  // Helper function to correctly type the guests for an event
   const getTypedGuestsForEvent = (eventId: string): Guest[] => {
     return guests
       .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
       .map(guest => ({
         ...guest,
-        rsvp_status: (guest.rsvp_status || 'pending') as Guest['rsvp_status'],
+        rsvp_status: guest.rsvp_status || mapStatusToRsvp(guest.status as Guest['status']),
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
         custom_values: guest.custom_values || {},

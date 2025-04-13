@@ -164,6 +164,7 @@ const AddGuestForm = ({ onSuccess }: AddGuestFormProps) => {
         status: (guest.status || "Pending") as "Confirmed" | "Maybe" | "Unavailable" | "Pending",
         notes: guest.notes || "",
         custom_values: guest.custom_values || {},
+        rsvp_status: mapStatusToRsvp((guest.status || "Pending") as "Confirmed" | "Maybe" | "Unavailable" | "Pending"),
       }));
 
       addGuests.mutate(newGuests, {
