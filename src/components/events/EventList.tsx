@@ -67,13 +67,16 @@ const EventList = ({ selectedEventId }: EventListProps) => {
   const getTypedGuestsForEvent = (eventId: string): Guest[] => {
     return guests
       .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
-      .map(guest => ({
-        ...guest,
-        rsvp_status: (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']),
-        priority: guest.priority as Guest['priority'],
-        status: guest.status as Guest['status'],
-        custom_values: guest.custom_values || {},
-      }));
+      .map(guest => {
+        const rsvp: RsvpStatus = (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']);
+        return {
+          ...guest,
+          rsvp_status: rsvp,
+          priority: guest.priority as Guest['priority'],
+          status: guest.status as Guest['status'],
+          custom_values: guest.custom_values || {},
+        };
+      });
   };
 
   return (
