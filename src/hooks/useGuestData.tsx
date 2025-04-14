@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Guest, NewGuest, RsvpStatus } from "@/types/guest";
@@ -44,7 +45,7 @@ export function useGuestData() {
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
         rsvp_status: (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']),
-        custom_values: guest.custom_values || {},
+        custom_values: guest.custom_values ? guest.custom_values as Record<string, any> : {},
       }));
     },
     staleTime: 1000, // Set a shorter stale time to refresh data more frequently
@@ -71,7 +72,7 @@ export function useGuestData() {
       priority: data.priority as Guest['priority'],
       status: data.status as Guest['status'],
       rsvp_status: (data.rsvp_status as RsvpStatus) || mapStatusToRsvp(data.status as Guest['status']),
-      custom_values: data.custom_values || {},
+      custom_values: data.custom_values ? data.custom_values as Record<string, any> : {},
     };
   };
 

@@ -4,14 +4,18 @@ import { RsvpStatus } from "@/types/guest";
 export const mapStatusToRsvp = (status: string | undefined): RsvpStatus => {
   if (!status) return 'Pending';
   
-  switch (status.toLowerCase()) {
+  const statusLower = status.toLowerCase();
+  
+  switch (statusLower) {
     case 'confirmed':
-      return 'Confirmed';
+    case 'accepted':
+      return 'accepted';
     case 'maybe':
       return 'Maybe';
     case 'unavailable':
-      return 'Unavailable';
+    case 'declined':
+      return 'declined';
     default:
-      return 'Pending';
+      return 'pending';
   }
 };

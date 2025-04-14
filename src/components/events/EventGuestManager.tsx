@@ -190,19 +190,19 @@ const EventGuestManager = ({
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <Badge className={getCategoryColor(guest.category)}>
-              {guest.category}
+            <Badge className={getCategoryColor(guest.category || 'Others')}>
+              {guest.category || 'Others'}
             </Badge>
             <Badge className={getStatusColor(guest.status)}>
               {guest.status}
             </Badge>
-            {guest.rsvp_status && guest.rsvp_status !== 'pending' && (
+            {guest.rsvp_status && guest.rsvp_status !== 'pending' && guest.rsvp_status !== 'Pending' && (
               <Badge className={
-                guest.rsvp_status === 'accepted' 
+                guest.rsvp_status === 'accepted' || guest.rsvp_status === 'Confirmed' 
                 ? "bg-green-100 text-green-800 border-green-200" 
                 : "bg-red-100 text-red-800 border-red-200"
               }>
-                {guest.rsvp_status === 'accepted' ? 'Accepted' : 'Declined'}
+                {guest.rsvp_status === 'accepted' || guest.rsvp_status === 'Confirmed' ? 'Accepted' : 'Declined'}
               </Badge>
             )}
           </div>
@@ -290,7 +290,6 @@ const EventGuestManager = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Search and Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative md:col-span-2">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
@@ -341,7 +340,6 @@ const EventGuestManager = ({
           </div>
         </div>
 
-        {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="available" className="flex items-center gap-2">
@@ -354,7 +352,6 @@ const EventGuestManager = ({
             </TabsTrigger>
           </TabsList>
 
-          {/* Bulk Actions */}
           <div className="flex justify-between items-center mt-4">
             <div className="flex items-center space-x-2">
               <Checkbox 
@@ -401,7 +398,6 @@ const EventGuestManager = ({
             </div>
           </div>
 
-          {/* Guest Lists */}
           <TabsContent value="available" className="mt-4 space-y-2">
             <div className="max-h-[400px] overflow-y-auto border rounded-md p-2 bg-gray-50">
               {filteredAvailableGuests.length > 0 ? (

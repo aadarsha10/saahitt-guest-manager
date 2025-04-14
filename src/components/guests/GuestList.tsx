@@ -566,9 +566,13 @@ const GuestList = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {guest.rsvp_status && guest.rsvp_status !== 'pending' ? (
-                      <Badge className={rsvpStatusColors[guest.rsvp_status as keyof typeof rsvpStatusColors]}>
-                        {guest.rsvp_status === 'accepted' ? 'Accepted' : 'Declined'}
+                    {guest.rsvp_status && guest.rsvp_status !== 'pending' && guest.rsvp_status !== 'Pending' ? (
+                      <Badge className={
+                        guest.rsvp_status === 'accepted' || guest.rsvp_status === 'Confirmed'
+                          ? rsvpStatusColors.accepted 
+                          : rsvpStatusColors.declined
+                      }>
+                        {guest.rsvp_status === 'accepted' || guest.rsvp_status === 'Confirmed' ? 'Accepted' : 'Declined'}
                         {guest.rsvp_at && ` (${new Date(guest.rsvp_at).toLocaleDateString()})`}
                       </Badge>
                     ) : (

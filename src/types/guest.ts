@@ -1,5 +1,5 @@
 
-export type RsvpStatus = 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending';
+export type RsvpStatus = 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending' | 'accepted' | 'declined' | 'pending';
 
 export interface Guest {
   id: string;
@@ -20,3 +20,7 @@ export interface Guest {
   rsvp_details?: Record<string, any> | null;
   rsvp_status: RsvpStatus;
 }
+
+export type NewGuest = Omit<Guest, 'id' | 'created_at' | 'updated_at' | 'rsvp_status'> & {
+  rsvp_status?: RsvpStatus;
+};

@@ -61,7 +61,8 @@ const EventList = ({ selectedEventId }: EventListProps) => {
   };
 
   const isValidRsvpStatus = (status: string | undefined): status is RsvpStatus => {
-    return status === 'Confirmed' || status === 'Maybe' || status === 'Unavailable' || status === 'Pending';
+    if (!status) return false;
+    return ['Confirmed', 'Maybe', 'Unavailable', 'Pending', 'accepted', 'declined', 'pending'].includes(status);
   };
 
   const getTypedGuestsForEvent = (eventId: string): Guest[] => {
@@ -69,7 +70,7 @@ const EventList = ({ selectedEventId }: EventListProps) => {
       .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
       .map(guest => {
         const rawRsvpStatus = guest.rsvp_status || mapStatusToRsvp(guest.status);
-        const rsvpStatus: RsvpStatus = isValidRsvpStatus(rawRsvpStatus) ? rawRsvpStatus : 'Pending';
+        const rsvpStatus: RsvpStatus = isValidRsvpStatus(rawRsvpStatus) ? rawRsvpStatus : 'pending';
         
         return {
           ...guest,
