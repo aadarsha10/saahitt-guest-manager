@@ -1,7 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Guest, NewGuest } from "@/types/guest";
+import { Guest, NewGuest, RsvpStatus } from "@/types/guest";
 import { useToast } from "@/components/ui/use-toast";
 import { usePlanConfigurations } from "./usePlanConfigurations";
 import { mapStatusToRsvp } from "@/utils/rsvpMapper";
