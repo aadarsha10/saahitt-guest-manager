@@ -60,24 +60,30 @@ const EventList = ({ selectedEventId }: EventListProps) => {
     setPdfPreviewOpen(true);
   };
 
-  if (isLoading) {
-    return <div>Loading events...</div>;
-  }
+  const isValidRsvpStatus = (status: string | undefined): status is RsvpStatus => {
+    return status === 'Confirmed' || status === 'Maybe' || status === 'Unavailable' || status === 'Pending';
+  };
 
   const getTypedGuestsForEvent = (eventId: string): Guest[] => {
     return guests
       .filter(g => eventGuests[eventId]?.some(eg => eg.guest_id === g.id))
       .map(guest => {
-        const rsvp: RsvpStatus = (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']);
+        const rawRsvpStatus = guest.rsvp_status || mapStatusToRsvp(guest.status);
+        const rsvpStatus: RsvpStatus = isValidRsvpStatus(rawRsvpStatus) ? rawRsvpStatus : 'Pending';
+        
         return {
           ...guest,
-          rsvp_status: rsvp,
-          priority: guest.priority as Guest['priority'],
-          status: guest.status as Guest['status'],
+          rsvp_status: rsvpStatus,
+          priority: (guest.priority || 'Medium') as Guest['priority'],
+          status: (guest.status || 'Pending') as Guest['status'],
           custom_values: guest.custom_values || {},
         };
       });
   };
+
+  if (isLoading) {
+    return <div>Loading events...</div>;
+  }
 
   return (
     <div className="space-y-6">

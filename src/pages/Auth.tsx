@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,28 +50,14 @@ const Auth = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
         
         if (session) {
-          // Check if session is older than 24 hours
-          const sessionCreatedAt = new Date(session.user.aud === 'authenticated' ? session.user.created_at : Date.now()).getTime();
-          const currentTime = new Date().getTime();
-          const dayInMs = 24 * 60 * 60 * 1000;
-          
-          if (currentTime - sessionCreatedAt > dayInMs) {
-            // Session expired, sign out and show message
-            await supabase.auth.signOut();
-            toast({
-              title: "Session Expired",
-              description: "Your session has expired. Please sign in again to continue.",
-              variant: "destructive",
-            });
-          } else {
-            // Valid session, redirect
-            const redirectPath = getRedirectPath();
-            console.log("User is already logged in, redirecting to:", redirectPath);
-            navigate(redirectPath, { replace: true });
-          }
+          // Valid session, redirect
+          const redirectPath = getRedirectPath();
+          console.log("User is already logged in, redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -82,7 +67,7 @@ const Auth = () => {
     checkSession();
   }, [navigate, location.search, toast]);
 
-  // Set up auth state change listener with improved error handling and session expiry check
+  // Set up auth state change listener with improved error handling
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -90,9 +75,6 @@ const Auth = () => {
         
         if (event === "SIGNED_IN" && session) {
           try {
-            // Ensure we have the latest session
-            await supabase.auth.getSession();
-            
             // Navigate to the redirect path if provided, otherwise to dashboard
             const redirectPath = getRedirectPath();
             console.log("User signed in, redirecting to:", redirectPath);
@@ -105,16 +87,6 @@ const Auth = () => {
               variant: "destructive",
               title: "Navigation Error",
               description: "There was a problem redirecting you. Please try refreshing the page.",
-            });
-          }
-        } else if (event === "SIGNED_OUT") {
-          // Check if it was due to session expiry
-          const searchParams = new URLSearchParams(location.search);
-          if (searchParams.get("expired") === "true") {
-            toast({
-              title: "Session Expired",
-              description: "Your session has expired. Please sign in again to continue.",
-              variant: "destructive",
             });
           }
         }

@@ -17,26 +17,8 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      // Set session expiry to 24 hours (in seconds)
       flowType: 'pkce',
       storageKey: 'saahitt-guest-manager-session'
     }
   }
 );
-
-// Handle session refresh and expiry
-supabase.auth.onAuthStateChange((event, session) => {
-  // Check if session exists
-  if (session) {
-    // Use auth.signedAt instead of session.created_at
-    const sessionCreatedAt = new Date(session.user.aud === 'authenticated' ? session.user.created_at : Date.now()).getTime();
-    const currentTime = new Date().getTime();
-    const dayInMs = 24 * 60 * 60 * 1000;
-    
-    // If session is older than 24 hours, sign out the user
-    if (currentTime - sessionCreatedAt > dayInMs) {
-      console.log('Session expired (older than 24 hours). Signing out...');
-      supabase.auth.signOut();
-    }
-  }
-});
