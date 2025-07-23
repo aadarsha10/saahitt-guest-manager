@@ -77,7 +77,8 @@ const EventList = ({ selectedEventId }: EventListProps) => {
           rsvp_status: rsvpStatus,
           priority: (guest.priority || 'Medium') as Guest['priority'],
           status: (guest.status || 'Pending') as Guest['status'],
-          custom_values: guest.custom_values || {},
+          custom_values: guest.custom_values && typeof guest.custom_values === 'object' && !Array.isArray(guest.custom_values) ? guest.custom_values as Record<string, any> : {},
+          rsvp_details: guest.rsvp_details && typeof guest.rsvp_details === 'object' && !Array.isArray(guest.rsvp_details) ? guest.rsvp_details as Record<string, any> : null,
         };
       });
   };

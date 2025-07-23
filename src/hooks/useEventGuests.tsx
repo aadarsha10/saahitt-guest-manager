@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { EventGuest } from "@/types/event";
-import { Guest } from "@/types/guest";
+import { Guest, RsvpStatus } from "@/types/guest";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { mapStatusToRsvp } from "@/utils/rsvpMapper";
 
 export const useEventGuests = () => {
   const { toast } = useToast();
@@ -30,7 +31,10 @@ export const useEventGuests = () => {
       return data?.map(guest => ({
         ...guest,
         priority: guest.priority as 'High' | 'Medium' | 'Low',
-        status: guest.status as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending'
+        status: guest.status as 'Confirmed' | 'Maybe' | 'Unavailable' | 'Pending',
+        rsvp_status: (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']),
+        custom_values: guest.custom_values && typeof guest.custom_values === 'object' && !Array.isArray(guest.custom_values) ? guest.custom_values as Record<string, any> : {},
+        rsvp_details: guest.rsvp_details && typeof guest.rsvp_details === 'object' && !Array.isArray(guest.rsvp_details) ? guest.rsvp_details as Record<string, any> : null,
       })) || [];
     }
   });

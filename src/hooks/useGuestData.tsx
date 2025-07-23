@@ -45,7 +45,8 @@ export function useGuestData() {
         priority: guest.priority as Guest['priority'],
         status: guest.status as Guest['status'],
         rsvp_status: (guest.rsvp_status as RsvpStatus) || mapStatusToRsvp(guest.status as Guest['status']),
-        custom_values: guest.custom_values ? guest.custom_values as Record<string, any> : {},
+        custom_values: guest.custom_values && typeof guest.custom_values === 'object' && !Array.isArray(guest.custom_values) ? guest.custom_values as Record<string, any> : {},
+        rsvp_details: guest.rsvp_details && typeof guest.rsvp_details === 'object' && !Array.isArray(guest.rsvp_details) ? guest.rsvp_details as Record<string, any> : null,
       }));
     },
     staleTime: 1000, // Set a shorter stale time to refresh data more frequently
@@ -72,7 +73,8 @@ export function useGuestData() {
       priority: data.priority as Guest['priority'],
       status: data.status as Guest['status'],
       rsvp_status: (data.rsvp_status as RsvpStatus) || mapStatusToRsvp(data.status as Guest['status']),
-      custom_values: data.custom_values ? data.custom_values as Record<string, any> : {},
+      custom_values: data.custom_values && typeof data.custom_values === 'object' && !Array.isArray(data.custom_values) ? data.custom_values as Record<string, any> : {},
+      rsvp_details: data.rsvp_details && typeof data.rsvp_details === 'object' && !Array.isArray(data.rsvp_details) ? data.rsvp_details as Record<string, any> : null,
     };
   };
 
