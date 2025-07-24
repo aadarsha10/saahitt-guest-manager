@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from 'lucide-react';
+import { ChangePasswordForm } from "./ChangePasswordForm";
 
 interface Profile {
   id: string;
@@ -135,58 +136,62 @@ const AccountSettings = () => {
   if (!profile) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <User className="h-5 w-5 text-gray-500" />
-          <CardTitle>Account Settings</CardTitle>
-        </div>
-        <CardDescription>
-          Manage your personal information and email preferences.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={updateProfile} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={profile.first_name || ""}
-                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                required
-              />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <User className="h-5 w-5 text-gray-500" />
+            <CardTitle>Account Settings</CardTitle>
+          </div>
+          <CardDescription>
+            Manage your personal information and email preferences.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={updateProfile} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={profile.first_name || ""}
+                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={profile.last_name || ""}
+                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="lastName"
-                value={profile.last_name || ""}
-                onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                id="email"
+                type="email"
+                value={profile.email || ""}
+                disabled
+                className="bg-gray-50"
               />
+              <p className="text-sm text-gray-500">
+                Email cannot be changed. Contact support if you need to update your email.
+              </p>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={profile.email || ""}
-              disabled
-              className="bg-gray-50"
-            />
-            <p className="text-sm text-gray-500">
-              Email cannot be changed. Contact support if you need to update your email.
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <ChangePasswordForm />
+    </div>
   );
 };
 

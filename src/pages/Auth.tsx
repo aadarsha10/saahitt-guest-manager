@@ -4,8 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+import { validatePassword } from "@/lib/passwordValidation";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -31,9 +36,12 @@ const Auth = () => {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get("tab");
+    const mode = searchParams.get("mode");
     const expired = searchParams.get("expired");
     
-    if (tab) {
+    if (mode === "reset") {
+      setCurrentView("reset");
+    } else if (tab) {
       setActiveTab(tab === "signup" ? "signup" : "signin");
     }
     
@@ -99,10 +107,23 @@ const Auth = () => {
   }, [navigate, location.search, toast]);
 
   const [activeTab, setActiveTab] = useState("signin");
+  const [currentView, setCurrentView] = useState<"auth" | "forgot" | "reset">("auth");
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Validate password strength
+    const passwordStrength = validatePassword(authData.password);
+    if (!passwordStrength.isValid) {
+      toast({
+        variant: "destructive",
+        title: "Weak password",
+        description: "Please choose a stronger password that meets all requirements.",
+      });
+      setIsLoading(false);
+      return;
+    }
     
     try {
       const { error } = await supabase.auth.signUp({
@@ -113,6 +134,7 @@ const Auth = () => {
             first_name: authData.firstName,
             last_name: authData.lastName,
           },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -170,6 +192,23 @@ const Auth = () => {
     }
   };
 
+  // Handle different views
+  if (currentView === "forgot") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <ForgotPasswordForm onBackToSignIn={() => setCurrentView("auth")} />
+      </div>
+    );
+  }
+
+  if (currentView === "reset") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <ResetPasswordForm />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -196,9 +235,8 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     placeholder="Password"
                     value={authData.password}
                     onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
@@ -206,9 +244,17 @@ const Auth = () => {
                   />
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col space-y-2">
                 <Button className="w-full" type="submit" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+                <Button 
+                  type="button"
+                  variant="link" 
+                  className="text-sm text-muted-foreground"
+                  onClick={() => setCurrentView("forgot")}
+                >
+                  Forgot your password?
                 </Button>
               </CardFooter>
             </form>
@@ -240,14 +286,16 @@ const Auth = () => {
                   onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
                   required
                 />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Password"
-                  value={authData.password}
-                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-                  required
-                />
+                <div className="space-y-2">
+                  <PasswordInput
+                    id="password"
+                    placeholder="Password"
+                    value={authData.password}
+                    onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                    required
+                  />
+                  <PasswordStrengthIndicator password={authData.password} />
+                </div>
               </CardContent>
               <CardFooter>
                 <Button className="w-full" type="submit" disabled={isLoading}>
