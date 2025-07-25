@@ -2,13 +2,19 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlanUpgrade } from "@/components/settings/PlanUpgrade";
+import { TransactionHistory } from "@/components/transactions/TransactionHistory";
+import { PlanComparison } from "@/components/plans/PlanComparison";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Shield, CreditCard, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanConfigurations } from "@/hooks/usePlanConfigurations";
+import { useTransactions } from "@/hooks/useTransactions";
+import { usePlanEnforcement } from "@/hooks/usePlanEnforcement";
 
 interface PlanManagementViewProps {
   profile: any;
@@ -20,15 +26,25 @@ const PlanManagementView = ({ profile, onRefreshProfile }: PlanManagementViewPro
   const { toast } = useToast();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'plans' | 'history'>('overview');
   
   const currentPlanId = profile?.plan_type || "free";
   const { getPlanById, isLoading: plansLoading } = usePlanConfigurations();
+  const { processPayment, isProcessingPayment, currentSubscription } = useTransactions();
+  const { planLimits, currentUsage } = usePlanEnforcement();
   
   const handlePlanSelected = (planId: string) => {
+    if (planId === currentPlanId) {
+      toast({
+        title: "Current Plan",
+        description: "You are already on this plan.",
+      });
+      return;
+    }
+
     if (planId === "free") {
-      // Handle downgrade to free plan directly (no payment needed)
-      handleDowngradeToFree();
+      // Handle downgrade to free plan through secure system
+      handleSecurePayment("free");
     } else {
       // Open payment dialog for premium plans
       setSelectedPlanId(planId);
@@ -36,130 +52,183 @@ const PlanManagementView = ({ profile, onRefreshProfile }: PlanManagementViewPro
     }
   };
   
-  const handleDowngradeToFree = async () => {
-    setIsProcessing(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("No active session");
-      
-      // Downgrade to free plan
-      const { error } = await supabase
-        .from("profiles")
-        .update({ plan_type: "free" })
-        .eq("id", session.user.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Plan Downgraded",
-        description: "You have been downgraded to the Free plan",
-      });
-      
-      // Refresh profile data
+  const handleSecurePayment = (planId: string) => {
+    processPayment({
+      planId: planId,
+      paymentMethod: planId === "free" ? "free" : "credit-card",
+      metadata: {
+        upgrade: planId !== "free",
+        downgrade: planId === "free",
+        previousPlan: currentPlanId,
+        initiatedFrom: 'dashboard'
+      }
+    });
+
+    // Refresh profile after payment processing
+    setTimeout(() => {
       onRefreshProfile();
-    } catch (error) {
-      console.error("Error downgrading plan:", error);
-      toast({
-        title: "Error",
-        description: "Could not downgrade your plan. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    }, 2000);
   };
   
   const handleGoToCheckout = () => {
     if (!selectedPlanId) return;
     
     setPaymentDialogOpen(false);
-    navigate(`/checkout?plan=${selectedPlanId}`);
+    handleSecurePayment(selectedPlanId);
   };
   
   const currentPlan = getPlanById(currentPlanId);
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'plans', label: 'Compare Plans' },
+    { id: 'history', label: 'Transaction History' }
+  ];
   
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Plan Management</CardTitle>
-          <CardDescription>View and manage your subscription plan</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PlanUpgrade 
-            currentPlanId={currentPlanId} 
-            onPlanSelected={handlePlanSelected} 
-          />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Information</CardTitle>
-          <CardDescription>Billing and payment details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-col space-y-1">
-              <span className="text-sm font-medium text-gray-500">Current Plan</span>
-              <span className="font-medium">{currentPlan.name}</span>
-            </div>
-            
-            <Separator />
-            
-            <div className="flex flex-col space-y-1">
-              <span className="text-sm font-medium text-gray-500">Payment Type</span>
-              <span className="font-medium">One-time Payment</span>
-            </div>
-            
-            <div className="rounded-md bg-gray-50 p-4 mt-6">
-              <div className="flex gap-2 items-center text-gray-600">
-                <Shield className="h-5 w-5 text-gray-500" />
-                <span className="text-sm">
-                  For billing questions, contact support@saahitt.com
-                </span>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Plan Management</h2>
+        <p className="text-muted-foreground">
+          Manage your subscription and billing information
+        </p>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+        {tabs.map((tab) => (
+          <Button
+            key={tab.id}
+            variant={activeTab === tab.id ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab(tab.id as any)}
+            className="flex-1"
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Current Plan Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Plan</CardTitle>
+              <CardDescription>Your active subscription details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold">{currentPlan.name}</h3>
+                  <p className="text-muted-foreground">
+                    Nrs. {currentPlan.price} {currentPlan.price === 0 ? "forever" : "one-time"}
+                  </p>
+                </div>
+                <Badge variant="secondary">Active</Badge>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              
+              {/* Usage Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{currentUsage.guests}</div>
+                  <div className="text-sm text-muted-foreground">Guests Added</div>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{planLimits.guestLimit}</div>
+                  <div className="text-sm text-muted-foreground">Guest Limit</div>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">
+                    {Math.round((currentUsage.guests / planLimits.guestLimit) * 100)}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">Usage</div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="font-medium">Plan Features</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {currentPlan.features.map((feature) => (
+                    <li key={feature}>• {feature}</li>
+                  ))}
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Upgrade */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upgrade Your Plan</CardTitle>
+              <CardDescription>Get more features and higher limits</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PlanUpgrade 
+                currentPlanId={currentPlanId} 
+                onPlanSelected={handlePlanSelected} 
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'plans' && (
+        <PlanComparison onSelectPlan={handlePlanSelected} />
+      )}
+
+      {activeTab === 'history' && (
+        <TransactionHistory />
+      )}
       
-      {/* Payment dialog */}
+      {/* Secure Payment Confirmation Dialog */}
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Continue to Checkout</DialogTitle>
+            <DialogTitle>Confirm Plan Upgrade</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="mb-4">
               You're about to upgrade to the <strong>{selectedPlanId && getPlanById(selectedPlanId).name}</strong> plan.
             </p>
             
-            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-md mb-6">
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span>Plan:</span>
+                  <span className="font-medium">{selectedPlanId && getPlanById(selectedPlanId).name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Amount:</span>
+                  <span className="font-medium">Nrs. {selectedPlanId && getPlanById(selectedPlanId).price}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Payment:</span>
+                  <span className="font-medium">One-time</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-green-50 border border-green-100 p-4 rounded-md mb-6 mt-4">
               <div className="flex gap-2">
-                <CreditCard className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-700">
-                  You'll be directed to our secure checkout page to complete your payment.
+                <Shield className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-green-700">
+                  Your payment will be processed securely through our encrypted payment system.
                 </div>
               </div>
             </div>
             
             <div className="flex justify-end gap-2 mt-4">
-              <button 
-                className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50"
-                onClick={() => setPaymentDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
                 Cancel
-              </button>
-              <button 
-                className="px-4 py-2 rounded-md bg-[#FF6F00] text-white hover:bg-[#FF6F00]/90 flex items-center gap-2"
+              </Button>
+              <Button 
                 onClick={handleGoToCheckout}
-                disabled={isProcessing}
+                disabled={isProcessingPayment}
               >
-                <CheckCircle className="h-4 w-4" />
-                Continue to Checkout
-              </button>
+                {isProcessingPayment ? "Processing..." : "Complete Secure Payment"}
+              </Button>
             </div>
           </div>
         </DialogContent>
