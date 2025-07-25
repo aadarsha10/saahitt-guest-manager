@@ -454,6 +454,107 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          encrypted_payment_data: Json | null
+          failed_reason: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          payment_provider: string | null
+          plan_id: string
+          status: string
+          transaction_reference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          encrypted_payment_data?: Json | null
+          failed_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          payment_provider?: string | null
+          plan_id: string
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          encrypted_payment_data?: Json | null
+          failed_reason?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          payment_provider?: string | null
+          plan_id?: string
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          activated_at: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          previous_plan_id: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          previous_plan_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          previous_plan_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
